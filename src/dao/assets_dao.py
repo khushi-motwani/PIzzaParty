@@ -3,14 +3,19 @@ from dto.assets_dto import AssetsDTO
 from exception.validation_exceptions import AssetNotFoundException
 
 class AssetsDao:
-    def __init__(self):
-        self.connection = get_db_connection()
+    def __init__(self, connection_factory=None):
+        self.connection_factory = connection_factory or get_db_connection
+        self.connection = None
         self.assets = []
         self.total = 0
 
+    def _get_connection(self):
+        if self.connection is None:
+            self.connection = self.connection_factory()
+        return self.connection
 
     def count(self):
-        dbcursor = self.connection.cursor()
+        dbcursor = self._get_connection().cursor()
         dbcursor.execute("SELECT count(*) as Total FROM Assets")
         result = dbcursor.fetchall()
         self.total = result[0][0]
@@ -18,7 +23,7 @@ class AssetsDao:
 
 
     def get_all(self):
-        dbcursor = self.connection.cursor()
+        dbcursor = self._get_connection().cursor()
         dbcursor.execute("SELECT * FROM Assets")
         result = dbcursor.fetchall()
 
@@ -29,7 +34,7 @@ class AssetsDao:
 
 
     def get_by_id(self, asset_id):
-        dbcursor = self.connection.cursor()
+        dbcursor = self._get_connection().cursor()
         dbcursor.execute("SELECT * FROM Assets WHERE asset_id = %s", (asset_id,))
         result = dbcursor.fetchone()
 
