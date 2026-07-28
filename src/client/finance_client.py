@@ -14,19 +14,23 @@ class FinanceClient:
             if ticker_obj is None:
                 raise TickerNotFoundError(f"Ticker '{ticker}' not found or has no price data")
 
-            info = ticker_obj.fast_info
+            # Use history() for a single day to get price data, safer than fast_info
+            hist = ticker_obj.history(period="1d")
 
-            if info is None or info.get("lastPrice") is None:
+            if hist is None or hist.empty:
                 raise TickerNotFoundError(f"Ticker '{ticker}' not found or has no price data")
+
+            latest = hist.iloc[-1]
+            close_price = float(latest["Close"])
 
             return QuoteDTO(
                 ticker=ticker,
-                price=info.get("lastPrice"),
-                currency=info.get("currency", "USD"),
-                previous_close=info.get("previousClose"),
-                market_cap=info.get("marketCap"),
-                day_high=info.get("dayHigh"),
-                day_low=info.get("dayLow")
+                price=close_price,
+                currency="USD",
+                previous_close=None,
+                market_cap=None,
+                day_high=float(latest["High"]),
+                day_low=float(latest["Low"])
             )
         except TickerNotFoundError:
             raise
