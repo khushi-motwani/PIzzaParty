@@ -14,8 +14,6 @@ class PortfoliosDao:
             self.connection = self.connection_factory()
         return self.connection
 
-    # ==================== GETTER OPERATIONS ====================
-
     def get_all(self):
         dbcursor = self._get_connection().cursor()
         dbcursor.execute("SELECT * FROM Portfolios ORDER BY portfolio_id")
@@ -88,8 +86,6 @@ class PortfoliosDao:
             portfolio = PortfoliosDTO(row[1], row[2], row[0])
             self.portfolios.append(portfolio)
         return self.portfolios
-
-    # ==================== SETTER OPERATIONS ====================
 
     def create(self, portfolio_name, portfolio_balance=0):
         dbcursor = self._get_connection().cursor()
