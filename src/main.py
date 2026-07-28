@@ -2,6 +2,7 @@ from flask import Flask, jsonify
 from controller.assets_controller import assets_bp
 from controller.portfolios_controller import portfolios_bp
 from controller.transactions_controller import transactions_bp
+from controller.finance_controller import finance_bp
 
 
 app = Flask(__name__)
@@ -17,6 +18,7 @@ def home():
 app.register_blueprint(assets_bp)
 app.register_blueprint(portfolios_bp)
 app.register_blueprint(transactions_bp)
+app.register_blueprint(finance_bp)
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=5000)
