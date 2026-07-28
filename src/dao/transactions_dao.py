@@ -33,7 +33,7 @@ class TransactionsDao:
         dbcursor.close()
         return self.transactions
 
-    def _row_to_dto(row):
+    def _row_to_dto(self, row):
         return TransactionsDTO(row[1], row[3], row[4], row[6], row[7], row[8], row[0], row[2], row[5])
 
     def get_transaction_by_id(self, transaction_id):
