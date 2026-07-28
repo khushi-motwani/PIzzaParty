@@ -48,7 +48,7 @@ class TransactionsDao:
         self._get_connection().commit()
         return dbcursor.lastrowid
 
-    def _row_to_dto(self, row):
+    def row_to_dto(self, row):
         return TransactionsDTO(row[1], row[3], row[4], row[6], row[7], row[8], row[0], row[2], row[5])
 
     def get_transaction_by_id(self, transaction_id):
@@ -58,7 +58,7 @@ class TransactionsDao:
         if not result:
             return None
         dbcursor.close()
-        return self._row_to_dto(result[0])
+        return self.row_to_dto(result[0])
 
     def get_transactions_by_portfolio(self, portfolio_id):
         dbcursor = self._get_connection().cursor()
@@ -68,7 +68,7 @@ class TransactionsDao:
         )
         result = dbcursor.fetchall()
         dbcursor.close()
-        return [self._row_to_dto(row) for row in result]
+        return [self.row_to_dto(row) for row in result]
 
     def get_transactions_by_asset(self, portfolio_id, asset_id):
         dbcursor = self._get_connection().cursor()
@@ -78,7 +78,7 @@ class TransactionsDao:
         )
         result = dbcursor.fetchall()
         dbcursor.close()
-        return [self._row_to_dto(row) for row in result]
+        return [self.row_to_dto(row) for row in result]
 
     def get_transactions_by_type(self, transaction_type):
         dbcursor = self._get_connection().cursor()
@@ -88,7 +88,7 @@ class TransactionsDao:
         )
         result = dbcursor.fetchall()
         dbcursor.close()
-        return [self._row_to_dto(row) for row in result]
+        return [self.row_to_dto(row) for row in result]
 
     def get_transactions_by_date_range(self, start_date, end_date):
         dbcursor = self._get_connection().cursor()
@@ -98,7 +98,7 @@ class TransactionsDao:
         )
         result = dbcursor.fetchall()
         dbcursor.close()
-        return [self._row_to_dto(row) for row in result]
+        return [self.row_to_dto(row) for row in result]
 
     def get_transactions_by_portfolio_and_date_range(self, portfolio_id, start_date, end_date):
         dbcursor = self._get_connection().cursor()
@@ -110,7 +110,7 @@ class TransactionsDao:
         )
         result = dbcursor.fetchall()
         dbcursor.close()
-        return [self._row_to_dto(row) for row in result]
+        return [self.row_to_dto(row) for row in result]
 
     def get_transaction_count_by_portfolio(self, portfolio_id):
         dbcursor = self._get_connection().cursor()
