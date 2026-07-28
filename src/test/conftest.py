@@ -4,6 +4,7 @@ from flask import Flask
 from controller.assets_controller import assets_bp
 from controller.portfolios_controller import portfolios_bp
 from controller.transactions_controller import transactions_bp
+from controller.finance_controller import finance_bp
 
 
 @pytest.fixture
@@ -12,6 +13,7 @@ def app():
     flask_app.register_blueprint(assets_bp)
     flask_app.register_blueprint(portfolios_bp)
     flask_app.register_blueprint(transactions_bp)
+    flask_app.register_blueprint(finance_bp)
     return flask_app
 
 
