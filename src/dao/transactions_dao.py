@@ -33,6 +33,21 @@ class TransactionsDao:
         dbcursor.close()
         return self.transactions
 
+
+    def create(self, portfolio_id, asset_id, transaction_type, transaction_quantity,
+               transaction_price, transaction_date, transaction_total, balance_after_transaction):
+        dbcursor = self._get_connection().cursor()
+        dbcursor.execute(
+            """INSERT INTO Transactions
+               (portfolio_id, asset_id, transaction_type, transaction_quantity,
+                transaction_price, transaction_date, transaction_total, balance_after_transaction)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+            (portfolio_id, asset_id, transaction_type, transaction_quantity,
+             transaction_price, transaction_date, transaction_total, balance_after_transaction)
+        )
+        self._get_connection().commit()
+        return dbcursor.lastrowid
+
     def _row_to_dto(self, row):
         return TransactionsDTO(row[1], row[3], row[4], row[6], row[7], row[8], row[0], row[2], row[5])
 
