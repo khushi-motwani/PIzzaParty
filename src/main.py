@@ -1,8 +1,14 @@
 from flask import Flask, jsonify
+import logging
 from controller.assets_controller import assets_bp
 from controller.portfolios_controller import portfolios_bp
 from controller.transactions_controller import transactions_bp
+from controller.finance_controller import finance_bp
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 app = Flask(__name__)
 
@@ -17,6 +23,7 @@ def home():
 app.register_blueprint(assets_bp)
 app.register_blueprint(portfolios_bp)
 app.register_blueprint(transactions_bp)
+app.register_blueprint(finance_bp)
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=5000)
