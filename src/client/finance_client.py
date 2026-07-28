@@ -41,12 +41,12 @@ class FinanceClient:
             ticker_obj = self.ticker_factory(ticker)
 
             if ticker_obj is None:
-                raise TickerNotFoundError(f"Ticker '{ticker}' not found or has no price data")
+                raise TickerNotFoundError(ticker)
 
             hist = ticker_obj.history(period="5d")
 
             if hist is None or hist.empty:
-                raise TickerNotFoundError(f"Ticker '{ticker}' not found or has no price data")
+                raise TickerNotFoundError(ticker)
 
             latest = hist.iloc[-1]
             close_price = float(latest["Close"])
@@ -65,7 +65,7 @@ class FinanceClient:
         except TickerNotFoundError:
             raise
         except Exception as e:
-            raise FinanceApiError(f"yfinance failed for '{ticker}': {str(e)}")
+            raise FinanceApiError(ticker, "yfinance")
 
     def _get_from_cached_api(self, ticker):
         try:
@@ -78,17 +78,17 @@ class FinanceClient:
             data = response.json()
 
             if not data or "price_data" not in data or "close" not in data["price_data"]:
-                raise TickerNotFoundError(f"No data for ticker '{ticker}' from cached API")
+                raise TickerNotFoundError(ticker)
 
             prices = data["price_data"]["close"]
             if not prices or len(prices) == 0:
-                raise TickerNotFoundError(f"No price data for ticker '{ticker}' from cached API")
+                raise TickerNotFoundError(ticker)
 
             latest_price = float(prices[-1])
 
             # Handle NaN values and convert to None
             if isnan(latest_price):
-                raise TickerNotFoundError(f"Invalid price data for ticker '{ticker}' from cached API")
+                raise TickerNotFoundError(ticker)
 
             # Calculate day high and low from available prices, use last 5 or all if less
             recent_prices = prices[-5:] if len(prices) >= 5 else prices
@@ -108,12 +108,12 @@ class FinanceClient:
             )
         except TickerNotFoundError:
             raise
-        except Exception as e:
-            raise FinanceApiError(f"Cached API failed for '{ticker}': {str(e)}")
+        except Exception:
+            raise FinanceApiError(ticker, "cached-api")
 
     def _get_from_mock_data(self, ticker):
         if ticker.upper() not in MOCK_DATA:
-            raise TickerNotFoundError(f"Ticker '{ticker}' not found in mock data")
+            raise TickerNotFoundError(ticker)
 
         data = MOCK_DATA[ticker.upper()]
         logger.warning(f"Using mock data for {ticker} (real API unavailable)")

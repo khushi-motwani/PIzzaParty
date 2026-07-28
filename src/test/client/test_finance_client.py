@@ -143,7 +143,7 @@ class TestFinanceClientFallback(unittest.TestCase):
         with self.assertRaises(TickerNotFoundError) as context:
             client.get_quote("UNKNOWNTICKER")
 
-        self.assertIn("not found in mock data", str(context.exception))
+        self.assertIn("not found", str(context.exception).lower())
 
     def test_cached_api_invalid_response(self):
         """Cached API returns invalid response, falls back to mock data"""
