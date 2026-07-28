@@ -1,9 +1,14 @@
 from flask import Flask, jsonify
+import logging
 from controller.assets_controller import assets_bp
 from controller.portfolios_controller import portfolios_bp
 from controller.transactions_controller import transactions_bp
 from controller.finance_controller import finance_bp
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 app = Flask(__name__)
 
