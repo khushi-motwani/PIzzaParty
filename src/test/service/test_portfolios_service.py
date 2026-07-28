@@ -2,7 +2,12 @@ import pytest
 from unittest.mock import MagicMock, patch
 from service.portfolios_service import PortfoliosService
 from dto.portfolios_dto import PortfoliosDTO
-from exception.validation_exceptions import PortfolioNotFoundException
+from exception.validation_exceptions import (
+    PortfolioNotFoundException,
+    InvalidPortfolioNameException,
+    InvalidAmountException,
+    InsufficientFundsException
+)
 
 
 class TestPortfoliosService:
@@ -228,13 +233,11 @@ class TestPortfoliosService:
         service.portfolios_dao.update_balance.assert_called_once_with(1, 0)
 
     def test_update_balance_to_negative(self, service):
-        """Test update_balance can set balance to negative."""
-        service.portfolios_dao.update_balance = MagicMock(return_value=True)
+        """Test update_balance raises exception when setting balance to negative."""
+        service.portfolios_dao.get_by_id = MagicMock(return_value=MagicMock())
 
-        result = service.update_balance(1, -1000.00)
-
-        assert result is True
-        service.portfolios_dao.update_balance.assert_called_once_with(1, -1000.00)
+        with pytest.raises(ValueError, match="Balance cannot be negative"):
+            service.update_balance(1, -1000.00)
 
     def test_increment_balance_success(self, service):
         """Test increment_balance returns True on success."""
@@ -262,30 +265,36 @@ class TestPortfoliosService:
         assert result is True
         service.portfolios_dao.increment_balance.assert_called_once_with(1, 1000000.00)
 
-    def test_decrement_balance_success(self, service):
+    def test_decrement_balance_success(self, service, mock_portfolio):
         """Test decrement_balance returns True on success."""
+        service.portfolios_dao.get_portfolio_balance = MagicMock(return_value=mock_portfolio)
         service.portfolios_dao.decrement_balance = MagicMock(return_value=True)
 
         result = service.decrement_balance(1, 5000.00)
 
         assert result is True
+        service.portfolios_dao.get_portfolio_balance.assert_called_once_with(1)
         service.portfolios_dao.decrement_balance.assert_called_once_with(1, 5000.00)
 
     def test_decrement_balance_not_found(self, service):
-        """Test decrement_balance returns False when portfolio not found."""
-        service.portfolios_dao.decrement_balance = MagicMock(return_value=False)
+        """Test decrement_balance raises exception when portfolio not found."""
+        service.portfolios_dao.get_by_id = MagicMock(
+            side_effect=PortfolioNotFoundException(999)
+        )
 
-        result = service.decrement_balance(999, 5000.00)
-
-        assert result is False
+        with pytest.raises(PortfolioNotFoundException):
+            service.decrement_balance(999, 5000.00)
 
     def test_decrement_balance_large_amount(self, service):
         """Test decrement_balance with large amount."""
+        large_balance_portfolio = PortfoliosDTO("Rich Portfolio", 1000000.00, 1)
+        service.portfolios_dao.get_portfolio_balance = MagicMock(return_value=large_balance_portfolio)
         service.portfolios_dao.decrement_balance = MagicMock(return_value=True)
 
         result = service.decrement_balance(1, 500000.00)
 
         assert result is True
+        service.portfolios_dao.get_portfolio_balance.assert_called_once_with(1)
         service.portfolios_dao.decrement_balance.assert_called_once_with(1, 500000.00)
 
     def test_delete_success(self, service):
@@ -358,3 +367,48 @@ class TestPortfoliosService:
 
         desc_portfolios = service.get_sorted_by_balance_desc()
         assert desc_portfolios[0].portfolio_balance == 100000.00
+
+    def test_decrement_balance_insufficient_funds(self, service):
+        """Test decrement_balance raises InsufficientFundsException when not enough balance."""
+        low_balance_portfolio = PortfoliosDTO("Poor Portfolio", 1000.00, 1)
+        service.portfolios_dao.get_by_id = MagicMock(return_value=MagicMock())
+        service.portfolios_dao.get_portfolio_balance = MagicMock(return_value=low_balance_portfolio)
+
+        with pytest.raises(InsufficientFundsException):
+            service.decrement_balance(1, 5000.00)
+
+    def test_create_with_empty_name(self, service):
+        """Test create raises InvalidPortfolioNameException with empty name."""
+        with pytest.raises(InvalidPortfolioNameException):
+            service.create("", 50000.00)
+
+    def test_create_with_none_name(self, service):
+        """Test create raises InvalidPortfolioNameException with None name."""
+        with pytest.raises(InvalidPortfolioNameException):
+            service.create(None, 50000.00)
+
+    def test_create_with_negative_balance(self, service):
+        """Test create raises ValueError with negative balance."""
+        with pytest.raises(ValueError, match="Balance cannot be negative"):
+            service.create("Portfolio", -1000.00)
+
+    def test_increment_balance_with_zero_amount(self, service):
+        """Test increment_balance raises InvalidAmountException with zero amount."""
+        service.portfolios_dao.get_by_id = MagicMock(return_value=MagicMock())
+
+        with pytest.raises(InvalidAmountException):
+            service.increment_balance(1, 0)
+
+    def test_increment_balance_with_negative_amount(self, service):
+        """Test increment_balance raises InvalidAmountException with negative amount."""
+        service.portfolios_dao.get_by_id = MagicMock(return_value=MagicMock())
+
+        with pytest.raises(InvalidAmountException):
+            service.increment_balance(1, -5000.00)
+
+    def test_update_name_with_empty_name(self, service):
+        """Test update_name raises InvalidPortfolioNameException with empty name."""
+        service.portfolios_dao.get_by_id = MagicMock(return_value=MagicMock())
+
+        with pytest.raises(InvalidPortfolioNameException):
+            service.update_name(1, "")
