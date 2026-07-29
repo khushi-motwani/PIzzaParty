@@ -1,6 +1,9 @@
+import logging
 from service.transactions_service import TransactionsService
 from exception.validation_exceptions import ValidationException, PortfolioNotFoundException, AssetNotFoundException
 from flask import Blueprint, jsonify, request
+
+logger = logging.getLogger('pizzaparty')
 
 transactions_bp = Blueprint('transactions', __name__, url_prefix='/transactions')
 
@@ -24,6 +27,7 @@ def create_transaction():
         # Validate required fields
         required_fields = ['portfolio_id', 'asset_id', 'transaction_type', 'quantity', 'price']
         if not all(field in data for field in required_fields):
+            logger.warning(f"Create transaction request missing required fields: {required_fields}")
             return jsonify({
                 "error": "Missing required fields",
                 "required": required_fields
@@ -45,13 +49,17 @@ def create_transaction():
         }), 201
 
     except PortfolioNotFoundException as e:
+        logger.critical(f"Portfolio not found error: {str(e)}")
         return jsonify({"error": str(e)}), 404
 
     except AssetNotFoundException as e:
+        logger.critical(f"Asset not found error: {str(e)}")
         return jsonify({"error": str(e)}), 404
 
     except ValidationException as e:
+        logger.critical(f"Validation error: {str(e)}")
         return jsonify({"error": str(e)}), 400
 
     except Exception as e:
+        logger.critical(f"Internal server error during transaction creation: {str(e)}", exc_info=True)
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
