@@ -97,3 +97,145 @@ class TestAssetsService:
 
         service.assets_dao.get_by_id.assert_called_once_with(999)
         service.assets_dao.update_asset_favourite_status.assert_not_called()
+
+    def test_get_by_id_success(self, service, mock_asset):
+        """Test get_by_id returns asset."""
+        service.assets_dao.get_by_id = MagicMock(return_value=mock_asset)
+
+        result = service.get_by_id(1)
+
+        assert result.asset_id == 1
+        assert result.asset_name == "Apple"
+        service.assets_dao.get_by_id.assert_called_once_with(1)
+
+    def test_get_by_id_not_found(self, service):
+        """Test get_by_id raises exception when asset not found."""
+        service.assets_dao.get_by_id = MagicMock(
+            side_effect=AssetNotFoundException(999)
+        )
+
+        with pytest.raises(AssetNotFoundException):
+            service.get_by_id(999)
+
+    def test_get_all_favourite_assets(self, service):
+        """Test get_all_favourite_assets returns list of favourite assets."""
+        asset1 = AssetsDTO("Apple", "STOCK", "Technology", "Hardware", True, 1)
+        asset2 = AssetsDTO("Tesla", "STOCK", "Consumer", "Auto", True, 2)
+        service.assets_dao.get_all_favourite_assets = MagicMock(return_value=[asset1, asset2])
+
+        result = service.get_all_favourite_assets()
+
+        assert len(result) == 2
+        assert result[0].is_favourite is True
+        assert result[1].is_favourite is True
+        service.assets_dao.get_all_favourite_assets.assert_called_once()
+
+    def test_get_all_favourite_assets_empty(self, service):
+        """Test get_all_favourite_assets returns empty list."""
+        service.assets_dao.get_all_favourite_assets = MagicMock(return_value=[])
+
+        result = service.get_all_favourite_assets()
+
+        assert result == []
+
+    def test_get_favourite_asset_count(self, service):
+        """Test get_favourite_asset_count returns count."""
+        service.assets_dao.get_favourite_asset_count = MagicMock(return_value=3)
+
+        result = service.get_favourite_asset_count()
+
+        assert result == 3
+
+    def test_get_assets_by_type(self, service):
+        """Test get_assets_by_type returns assets of specific type."""
+        asset1 = AssetsDTO("Apple", "STOCK", "Technology", "Hardware", False, 1)
+        asset2 = AssetsDTO("Tesla", "STOCK", "Consumer", "Auto", False, 2)
+        service.assets_dao.get_assets_by_type = MagicMock(return_value=[asset1, asset2])
+
+        result = service.get_assets_by_type("STOCK")
+
+        assert len(result) == 2
+        assert result[0].asset_type == "STOCK"
+        service.assets_dao.get_assets_by_type.assert_called_once_with("STOCK")
+
+    def test_get_assets_by_sector(self, service):
+        """Test get_assets_by_sector returns assets of specific sector."""
+        asset = AssetsDTO("Apple", "STOCK", "Technology", "Hardware", False, 1)
+        service.assets_dao.get_assets_by_sector = MagicMock(return_value=[asset])
+
+        result = service.get_assets_by_sector("Technology")
+
+        assert len(result) == 1
+        assert result[0].asset_sector == "Technology"
+        service.assets_dao.get_assets_by_sector.assert_called_once_with("Technology")
+
+    def test_get_assets_by_industry(self, service):
+        """Test get_assets_by_industry returns assets of specific industry."""
+        asset = AssetsDTO("Apple", "STOCK", "Technology", "Hardware", False, 1)
+        service.assets_dao.get_assets_by_industry = MagicMock(return_value=[asset])
+
+        result = service.get_assets_by_industry("Hardware")
+
+        assert len(result) == 1
+        assert result[0].asset_industry == "Hardware"
+        service.assets_dao.get_assets_by_industry.assert_called_once_with("Hardware")
+
+    def test_create_asset(self, service):
+        """Test create successfully creates asset."""
+        service.assets_dao.insert_asset = MagicMock()
+
+        service.create("AAPL", "Apple Inc.", "STOCK", "Technology", "Hardware")
+
+        service.assets_dao.insert_asset.assert_called_once_with("AAPL", "Apple Inc.", "STOCK", "Technology", "Hardware", False)
+
+    def test_create_asset_as_favourite(self, service):
+        """Test create can create asset as favourite."""
+        service.assets_dao.insert_asset = MagicMock()
+
+        service.create("AAPL", "Apple Inc.", "STOCK", "Technology", "Hardware", True)
+
+        service.assets_dao.insert_asset.assert_called_once_with("AAPL", "Apple Inc.", "STOCK", "Technology", "Hardware", True)
+
+    def test_update_asset_success(self, service, mock_asset):
+        """Test update_asset successfully updates asset."""
+        service.assets_dao.get_by_id = MagicMock(return_value=mock_asset)
+        service.assets_dao.update_asset = MagicMock()
+
+        service.update_asset(1, "Apple Inc.", "STOCK", "Technology", "Hardware")
+
+        service.assets_dao.get_by_id.assert_called_once_with(1)
+        service.assets_dao.update_asset.assert_called_once_with(1, "Apple Inc.", "STOCK", "Technology", "Hardware")
+
+    def test_update_asset_not_found(self, service):
+        """Test update_asset raises exception when asset not found."""
+        service.assets_dao.get_by_id = MagicMock(
+            side_effect=AssetNotFoundException(999)
+        )
+
+        with pytest.raises(AssetNotFoundException):
+            service.update_asset(999, "New Name", "STOCK", "Tech", "Hardware")
+
+        service.assets_dao.get_by_id.assert_called_once_with(999)
+        service.assets_dao.update_asset.assert_not_called()
+
+    def test_delete_asset_success(self, service, mock_asset):
+        """Test delete successfully deletes asset."""
+        service.assets_dao.get_by_id = MagicMock(return_value=mock_asset)
+        service.assets_dao.delete_asset = MagicMock()
+
+        service.delete(1)
+
+        service.assets_dao.get_by_id.assert_called_once_with(1)
+        service.assets_dao.delete_asset.assert_called_once_with(1)
+
+    def test_delete_asset_not_found(self, service):
+        """Test delete raises exception when asset not found."""
+        service.assets_dao.get_by_id = MagicMock(
+            side_effect=AssetNotFoundException(999)
+        )
+
+        with pytest.raises(AssetNotFoundException):
+            service.delete(999)
+
+        service.assets_dao.get_by_id.assert_called_once_with(999)
+        service.assets_dao.delete_asset.assert_not_called()
