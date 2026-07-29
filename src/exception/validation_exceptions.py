@@ -65,3 +65,33 @@ class InvalidTransactionTypeException(ValidationException):
         else:
             message = f"Invalid transaction type '{transaction_type}'. Valid types are: {', '.join(valid_types)}"
         super().__init__(message)
+
+
+class NegativeBalanceException(ValidationException):
+    """Raised when an operation would result in a negative balance."""
+    def __init__(self, amount=None, current_balance=None):
+        if amount is None or current_balance is None:
+            message = "Operation would result in a negative balance. Insufficient funds."
+        else:
+            message = f"Cannot deduct ${amount:.2f} from balance of ${current_balance:.2f}. This would result in a negative balance."
+        super().__init__(message)
+
+
+class InvalidPortfolioNameException(ValidationException):
+    """Raised when portfolio name is invalid."""
+    def __init__(self, name=None):
+        if name is None or name == "":
+            message = "Portfolio name cannot be empty. Please provide a valid portfolio name."
+        else:
+            message = f"Invalid portfolio name: '{name}'. Portfolio name must be a non-empty string."
+        super().__init__(message)
+
+
+class InvalidAmountException(ValidationException):
+    """Raised when transaction amount is invalid."""
+    def __init__(self, amount=None):
+        if amount is None:
+            message = "Amount must be a positive number greater than zero."
+        else:
+            message = f"Invalid amount: ${amount:.2f}. Amount must be a positive number."
+        super().__init__(message)
