@@ -1,5 +1,5 @@
 class AssetsDTO:
-    def __init__(self, asset_name, asset_type="UNKNOWN", asset_sector="UNKNOWN", asset_industry="UNKNOWN", is_favourite=False, asset_id=None):
+    def __init__(self, asset_name, asset_id=None, asset_type="UNKNOWN", asset_sector="UNKNOWN", asset_industry="UNKNOWN", is_favourite=False):
         self.asset_id = asset_id
         self.asset_name = asset_name
         self.asset_type = asset_type

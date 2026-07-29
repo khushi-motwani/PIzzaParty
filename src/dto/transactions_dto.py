@@ -1,5 +1,5 @@
 class TransactionsDTO:
-    def __init__(self, portfolio_id, transaction_type="UNKNOWN", transaction_quantity=0, transaction_date=None, transaction_total=0, balance_after_transaction=0, transaction_id=None, asset_id=None, transaction_price=None):
+    def __init__(self, portfolio_id, transaction_id=None, asset_id=None, transaction_type="UNKNOWN", transaction_quantity=0, transaction_price=None, transaction_date=None, transaction_total=0, balance_after_transaction=0):
         self.transaction_id = transaction_id
         self.portfolio_id = portfolio_id
         self.asset_id = asset_id
