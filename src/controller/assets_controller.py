@@ -52,32 +52,3 @@ def get_assets_by_sector(asset_sector):
 def get_assets_by_industry(asset_industry):
     assets = assets_service.get_assets_by_industry(asset_industry)
     return jsonify([asset.to_dict() for asset in assets])
-
-@assets_bp.route('', methods=['POST'])
-def create_asset():
-    data = request.get_json()
-    asset_id = data.get('asset_id')
-    asset_name = data.get('asset_name')
-    asset_type = data.get('asset_type')
-    asset_sector = data.get('asset_sector')
-    asset_industry = data.get('asset_industry')
-    is_favourite = data.get('is_favourite', False)
-
-    assets_service.create(asset_id, asset_name, asset_type, asset_sector, asset_industry, is_favourite)
-    return jsonify({"message": "Asset created successfully"}), 201
-
-@assets_bp.route('/<asset_id>', methods=['PUT'])
-def update_asset(asset_id):
-    data = request.get_json()
-    asset_name = data.get('asset_name')
-    asset_type = data.get('asset_type')
-    asset_sector = data.get('asset_sector')
-    asset_industry = data.get('asset_industry')
-
-    assets_service.update_asset(asset_id, asset_name, asset_type, asset_sector, asset_industry)
-    return jsonify({"message": "Asset updated successfully"})
-
-@assets_bp.route('/<asset_id>', methods=['DELETE'])
-def delete_asset(asset_id):
-    assets_service.delete(asset_id)
-    return jsonify({"message": "Asset deleted successfully"})

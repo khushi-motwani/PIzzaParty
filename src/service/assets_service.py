@@ -28,17 +28,6 @@ class AssetsService:
     def get_assets_by_industry(self, asset_industry):
         return self.assets_dao.get_assets_by_industry(asset_industry)
 
-    def create(self, asset_id, asset_name, asset_type, asset_sector, asset_industry, is_favourite=False):
-        return self.assets_dao.insert_asset(asset_id, asset_name, asset_type, asset_sector, asset_industry, is_favourite)
-
-    def update_asset(self, asset_id, asset_name, asset_type, asset_sector, asset_industry):
-        self.assets_dao.get_by_id(asset_id)
-        self.assets_dao.update_asset(asset_id, asset_name, asset_type, asset_sector, asset_industry)
-
     def update_favourite_status(self, asset_id, is_favourite):
         self.assets_dao.get_by_id(asset_id)
         self.assets_dao.update_asset_favourite_status(asset_id, is_favourite)
-
-    def delete(self, asset_id):
-        self.assets_dao.get_by_id(asset_id)
-        self.assets_dao.delete_asset(asset_id)
