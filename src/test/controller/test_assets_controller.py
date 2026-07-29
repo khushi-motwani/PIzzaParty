@@ -1,6 +1,7 @@
-from unittest.mock import patch
-from controller.assets_controller import get_all_assets, get_assets_count
+from unittest.mock import patch, MagicMock
+from controller.assets_controller import get_all_assets, get_assets_count, update_favourite_status
 from dto.assets_dto import AssetsDTO
+import json
 
 @patch('controller.assets_controller.assets_service')
 def test_get_all_assets(mock_service, app_context):
@@ -35,3 +36,33 @@ def test_get_assets_count(mock_service, app_context):
     data = result.json
     assert data["count"] == 5
     mock_service.count.assert_called_once()
+
+@patch('controller.assets_controller.assets_service')
+def test_update_favourite_status_success(mock_service, app_context, client):
+    mock_service.update_favourite_status = MagicMock()
+
+    response = client.put(
+        '/assets/favourite',
+        data=json.dumps({'asset_id': 1, 'is_favourite': True}),
+        content_type='application/json'
+    )
+
+    assert response.status_code == 200
+    data = response.json
+    assert data["message"] == "Favourite status updated successfully"
+    mock_service.update_favourite_status.assert_called_once_with(1, True)
+
+@patch('controller.assets_controller.assets_service')
+def test_update_favourite_status_to_false(mock_service, app_context, client):
+    mock_service.update_favourite_status = MagicMock()
+
+    response = client.put(
+        '/assets/favourite',
+        data=json.dumps({'asset_id': 2, 'is_favourite': False}),
+        content_type='application/json'
+    )
+
+    assert response.status_code == 200
+    data = response.json
+    assert data["message"] == "Favourite status updated successfully"
+    mock_service.update_favourite_status.assert_called_once_with(2, False)
