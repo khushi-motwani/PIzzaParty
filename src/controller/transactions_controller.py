@@ -21,37 +21,37 @@ def get_transactions_count():
 
 @transactions_bp.route('/<int:transaction_id>', methods=['GET'])
 def get_transaction(transaction_id):
-    transaction = transactions_service.transactions_dao.get_transaction_by_id(transaction_id)
+    transaction = transactions_service.get_transaction_by_id(transaction_id)
     return jsonify(transaction.to_dict())
 
 @transactions_bp.route('/portfolio/<int:portfolio_id>/all', methods=['GET'])
 def get_transactions_by_portfolio(portfolio_id):
-    transactions = transactions_service.transactions_dao.get_transactions_by_portfolio(portfolio_id)
+    transactions = transactions_service.get_transactions_by_portfolio(portfolio_id)
     return jsonify([transaction.to_dict() for transaction in transactions])
 
 @transactions_bp.route('/portfolio/<int:portfolio_id>/count', methods=['GET'])
 def get_portfolio_transaction_count(portfolio_id):
-    count = transactions_service.transactions_dao.get_transaction_count_by_portfolio(portfolio_id)
+    count = transactions_service.get_transaction_count_by_portfolio(portfolio_id)
     return jsonify({"count": count})
 
 @transactions_bp.route('/portfolio/<int:portfolio_id>/value', methods=['GET'])
 def get_portfolio_transaction_value(portfolio_id):
-    total_value = transactions_service.transactions_dao.get_total_transaction_value_by_portfolio(portfolio_id)
+    total_value = transactions_service.get_total_transaction_value_by_portfolio(portfolio_id)
     return jsonify({"total_value": total_value})
 
 @transactions_bp.route('/portfolio/<int:portfolio_id>/asset/<asset_id>/all', methods=['GET'])
 def get_transactions_by_asset(portfolio_id, asset_id):
-    transactions = transactions_service.transactions_dao.get_transactions_by_asset(portfolio_id, asset_id)
+    transactions = transactions_service.get_transactions_by_asset(portfolio_id, asset_id)
     return jsonify([transaction.to_dict() for transaction in transactions])
 
 @transactions_bp.route('/type/<transaction_type>/all', methods=['GET'])
 def get_transactions_by_type(transaction_type):
-    transactions = transactions_service.transactions_dao.get_transactions_by_type(transaction_type)
+    transactions = transactions_service.get_transactions_by_type(transaction_type)
     return jsonify([transaction.to_dict() for transaction in transactions])
 
 @transactions_bp.route('/portfolio/<int:portfolio_id>/summary', methods=['GET'])
 def get_transaction_summary(portfolio_id):
-    summary = transactions_service.transactions_dao.get_transaction_summary_by_portfolio(portfolio_id)
+    summary = transactions_service.get_transaction_summary_by_portfolio(portfolio_id)
     return jsonify(summary)
 
 @transactions_bp.route('/create', methods=['POST'])
@@ -109,7 +109,7 @@ def update_transaction(transaction_id):
         transaction_total = data['transaction_total']
         balance_after_transaction = data['balance_after_transaction']
 
-        transactions_service.transactions_dao.update_transaction(
+        transactions_service.update_transaction(
             transaction_id, transaction_type, transaction_quantity,
             transaction_price, transaction_total, balance_after_transaction
         )
@@ -130,7 +130,7 @@ def update_transaction(transaction_id):
 @transactions_bp.route('/<int:transaction_id>', methods=['DELETE'])
 def delete_transaction(transaction_id):
     try:
-        transactions_service.transactions_dao.delete_transaction(transaction_id)
+        transactions_service.delete_transaction(transaction_id)
         logger.info(f"Transaction deleted successfully: ID={transaction_id}")
         return jsonify({
             "message": "Transaction deleted successfully",
