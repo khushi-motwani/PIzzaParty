@@ -52,13 +52,22 @@ class AssetNotFoundException(ValidationException):
         else:
             message = f"Asset with ID '{asset_id}' not found. This asset does not exist in the system."
         super().__init__(message)
+        
+class TransactionsNotFoundException(ValidationException):
+    """Raised when transaction doesn't exist."""
+    def __init__(self, transaction_id=None):
+        if transaction_id is None:
+            message = "Transaction not found. Please check the Transaction ID and try again."
+        else:
+            message = f"Transaction with ID '{transaction_id}' not found. This transaction does not exist in the system."
+        super().__init__(message)
 
 
 class InvalidTransactionTypeException(ValidationException):
     """Raised when transaction type is invalid."""
     def __init__(self, transaction_type=None, valid_types=None):
         if valid_types is None:
-            valid_types = ["BUY", "SELL"]
+            valid_types = ["BUY", "SELL", "DEPOSIT", "WITHDRAW"]
 
         if transaction_type is None:
             message = f"Invalid transaction type. Valid types are: {', '.join(valid_types)}"
@@ -94,4 +103,11 @@ class InvalidAmountException(ValidationException):
             message = "Amount must be a positive number greater than zero."
         else:
             message = f"Invalid amount: ${amount:.2f}. Amount must be a positive number."
+        super().__init__(message)
+        
+class InvalidDateRange(ValidationException):
+    """Raised when transaction amount is invalid."""
+    def __init__(self, start_date=None, end_date=None):
+        if start_date > end_date:
+            message = "Invalide date range: Initial date {start_date} is after final date {end_date}"
         super().__init__(message)
