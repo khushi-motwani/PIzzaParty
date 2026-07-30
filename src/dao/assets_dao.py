@@ -28,7 +28,14 @@ class AssetsDao:
         result = dbcursor.fetchall()
 
         for row in result:
-            asset = AssetsDTO(row[1], row[2], row[3], row[4], row[5], row[0])
+            asset = AssetsDTO(
+                asset_name=row[1],
+                asset_id=row[0],
+                asset_type=row[2],
+                asset_sector=row[3],
+                asset_industry=row[4],
+                is_favourite=bool(row[5])
+            )
             self.assets.append(asset)
         return self.assets
 
@@ -41,7 +48,14 @@ class AssetsDao:
         if result is None:
             raise AssetNotFoundException(asset_id)
 
-        return AssetsDTO(result[1], result[2], result[3], result[4], result[5], result[0])
+        return AssetsDTO(
+                asset_name=result[1],
+                asset_id=result[0],
+                asset_type=result[2],
+                asset_sector=result[3],
+                asset_industry=result[4],
+                is_favourite=bool(result[5])
+            )
 
     def get_all_favourite_assets(self):
         dbcursor = self._get_connection().cursor()
@@ -50,7 +64,14 @@ class AssetsDao:
 
         favourite_assets = []
         for row in result:
-            asset = AssetsDTO(row[1], row[2], row[3], row[4], row[5], row[0])
+            asset = AssetsDTO(
+                asset_name=row[1],
+                asset_id=row[0],
+                asset_type=row[2],
+                asset_sector=row[3],
+                asset_industry=row[4],
+                is_favourite=bool(row[5])
+            )
             favourite_assets.append(asset)
         return favourite_assets
 
@@ -61,7 +82,14 @@ class AssetsDao:
 
         assets_by_type = []
         for row in result:
-            asset = AssetsDTO(row[1], row[2], row[3], row[4], row[5], row[0])
+            asset = AssetsDTO(
+                asset_name=row[1],
+                asset_id=row[0],
+                asset_type=row[2],
+                asset_sector=row[3],
+                asset_industry=row[4],
+                is_favourite=bool(row[5])
+            )
             assets_by_type.append(asset)
         return assets_by_type
 
@@ -72,7 +100,14 @@ class AssetsDao:
 
         assets_by_sector = []
         for row in result:
-            asset = AssetsDTO(row[1], row[2], row[3], row[4], row[5], row[0])
+            asset = AssetsDTO(
+                            asset_name=row[1],
+                            asset_id=row[0],
+                            asset_type=row[2],
+                            asset_sector=row[3],
+                            asset_industry=row[4],
+                            is_favourite=bool(row[5])
+                        )
             assets_by_sector.append(asset)
         return assets_by_sector
 
@@ -83,7 +118,14 @@ class AssetsDao:
 
         assets_by_industry = []
         for row in result:
-            asset = AssetsDTO(row[1], row[2], row[3], row[4], row[5], row[0])
+            asset = AssetsDTO(
+                            asset_name=row[1],
+                            asset_id=row[0],
+                            asset_type=row[2],
+                            asset_sector=row[3],
+                            asset_industry=row[4],
+                            is_favourite=bool(row[5])
+                        )
             assets_by_industry.append(asset)
         return assets_by_industry
 

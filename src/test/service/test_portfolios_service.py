@@ -24,15 +24,15 @@ class TestPortfoliosService:
         """Create a mock portfolio."""
         return PortfoliosDTO(
             portfolio_name="Test Portfolio",
-            portfolio_balance=50000.00,
-            portfolio_id=1
+            portfolio_id=1,
+            portfolio_balance=50000.00
         )
 
     def test_get_all(self, service):
         """Test get_all returns list of portfolios."""
         portfolios = [
-            PortfoliosDTO("Portfolio 1", 50000.00, 1),
-            PortfoliosDTO("Portfolio 2", 100000.00, 2)
+            PortfoliosDTO("Portfolio 1", 1, 50000.00),
+            PortfoliosDTO("Portfolio 2", 2, 100000.00)
         ]
         service.portfolios_dao.get_all = MagicMock(return_value=portfolios)
 
@@ -131,8 +131,8 @@ class TestPortfoliosService:
     def test_get_sorted_by_balance_desc(self, service):
         """Test get_sorted_by_balance_desc returns sorted portfolios."""
         portfolios = [
-            PortfoliosDTO("High Balance", 100000.00, 2),
-            PortfoliosDTO("Low Balance", 50000.00, 1)
+            PortfoliosDTO("High Balance", 2, 100000.00),
+            PortfoliosDTO("Low Balance", 1, 50000.00)
         ]
         service.portfolios_dao.get_sorted_by_balance_desc = MagicMock(return_value=portfolios)
 
@@ -146,8 +146,8 @@ class TestPortfoliosService:
     def test_get_sorted_by_balance_asc(self, service):
         """Test get_sorted_by_balance_asc returns sorted portfolios."""
         portfolios = [
-            PortfoliosDTO("Low Balance", 50000.00, 1),
-            PortfoliosDTO("High Balance", 100000.00, 2)
+            PortfoliosDTO("Low Balance", 1, 50000.00),
+            PortfoliosDTO("High Balance", 2, 100000.00)
         ]
         service.portfolios_dao.get_sorted_by_balance_asc = MagicMock(return_value=portfolios)
 
@@ -287,7 +287,7 @@ class TestPortfoliosService:
 
     def test_decrement_balance_large_amount(self, service):
         """Test decrement_balance with large amount."""
-        large_balance_portfolio = PortfoliosDTO("Rich Portfolio", 1000000.00, 1)
+        large_balance_portfolio = PortfoliosDTO("Rich Portfolio", 1, 1000000.00)
         service.portfolios_dao.get_portfolio_balance = MagicMock(return_value=large_balance_portfolio)
         service.portfolios_dao.decrement_balance = MagicMock(return_value=True)
 
@@ -316,7 +316,7 @@ class TestPortfoliosService:
 
     def test_multiple_operations_in_sequence(self, service):
         """Test multiple service operations in sequence."""
-        portfolio = PortfoliosDTO("Test Portfolio", 50000.00, 1)
+        portfolio = PortfoliosDTO("Test Portfolio", 1, 50000.00)
 
         service.portfolios_dao.create = MagicMock(return_value=1)
         service.portfolios_dao.get_by_id = MagicMock(return_value=portfolio)
@@ -347,12 +347,12 @@ class TestPortfoliosService:
     def test_get_all_and_sorted_operations(self, service):
         """Test getting all and sorted portfolios."""
         portfolios_asc = [
-            PortfoliosDTO("Low", 10000.00, 1),
-            PortfoliosDTO("High", 100000.00, 2)
+            PortfoliosDTO("Low", 1, 10000.00),
+            PortfoliosDTO("High", 2, 100000.00)
         ]
         portfolios_desc = [
-            PortfoliosDTO("High", 100000.00, 2),
-            PortfoliosDTO("Low", 10000.00, 1)
+            PortfoliosDTO("High", 2, 100000.00),
+            PortfoliosDTO("Low", 1, 10000.00)
         ]
 
         service.portfolios_dao.get_all = MagicMock(return_value=portfolios_asc)
@@ -370,7 +370,7 @@ class TestPortfoliosService:
 
     def test_decrement_balance_insufficient_funds(self, service):
         """Test decrement_balance raises InsufficientFundsException when not enough balance."""
-        low_balance_portfolio = PortfoliosDTO("Poor Portfolio", 1000.00, 1)
+        low_balance_portfolio = PortfoliosDTO("Poor Portfolio", 1, 1000.00)
         service.portfolios_dao.get_by_id = MagicMock(return_value=MagicMock())
         service.portfolios_dao.get_portfolio_balance = MagicMock(return_value=low_balance_portfolio)
 

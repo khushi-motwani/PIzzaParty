@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m pytest -v)",
+      "Bash(python -m pytest src/test/dao/test_assets_dao.py::test_get_by_id -v)"
+    ]
+  }
+}
