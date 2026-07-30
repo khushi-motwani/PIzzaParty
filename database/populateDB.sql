@@ -87,14 +87,17 @@ INSERT INTO Portfolios (portfolio_name, portfolio_balance) VALUES
 
 -- Growth Portfolio (portfolio_id = 1) - Starting balance: 100,000
 INSERT INTO Transactions (portfolio_id, asset_id, transaction_type, transaction_quantity, transaction_price, transaction_date, transaction_total, balance_after_transaction) VALUES
+(1, NULL, 'DEPOSIT', 0, 0, '2026-01-15 10:00:00', 100000.00, 100000.00),
 (1, 'MSFT', 'BUY', 100, 389.46, '2026-01-15 10:30:00', 38946.00, 61054.00),
 (1, 'NVDA', 'BUY', 150, 208.59, '2026-01-20 11:00:00', 31288.50, 29765.50),
 (1, 'GOOG', 'BUY', 50, 346.86, '2026-02-05 14:15:00', 17343.00, 12422.50),
 (1, 'TSLA', 'BUY', 25, 377.03, '2026-02-10 09:45:00', 9425.75, 2996.75),
-(1, 'MSFT', 'SELL', 30, 389.46, '2026-03-01 13:20:00', 11683.80, 14680.55);
+(1, 'MSFT', 'SELL', 30, 389.46, '2026-03-01 13:20:00', 11683.80, 14680.55),
+(1, NULL, 'WITHDRAW', 0, 0, '2026-01-15 10:00:00', 10000.00, 90000.00);
 
 -- Conservative Portfolio (portfolio_id = 2) - Starting balance: 50,000
 INSERT INTO Transactions (portfolio_id, asset_id, transaction_type, transaction_quantity, transaction_price, transaction_date, transaction_total, balance_after_transaction) VALUES
+(2, Null, 'DEPOSIT', 0, 0, '2026-01-10 08:00:00', 50000.00, 50000.00),
 (2, 'SPY', 'BUY', 35, 747.46, '2026-01-10 10:00:00', 26161.10, 23838.90),
 (2, 'TLT', 'BUY', 300, 83.59, '2026-01-15 11:30:00', 25077.00, -1238.10),
 (2, 'JNJ', 'BUY', 75, 254.93, '2026-02-01 15:00:00', 19119.75, -20357.85),
@@ -102,6 +105,7 @@ INSERT INTO Transactions (portfolio_id, asset_id, transaction_type, transaction_
 
 -- Tech-Focused Portfolio (portfolio_id = 3) - Starting balance: 75,000
 INSERT INTO Transactions (portfolio_id, asset_id, transaction_type, transaction_quantity, transaction_price, transaction_date, transaction_total, balance_after_transaction) VALUES
+(3, Null, 'DEPOSIT', 0, 0, '2026-01-10 08:00:00', 75000.00, 75000.00),
 (3, 'AAPL', 'BUY', 120, 325.13, '2026-01-12 09:00:00', 39015.60, 35984.40),
 (3, 'META', 'BUY', 60, 629.70, '2026-01-18 10:30:00', 37782.00, -1797.60),
 (3, 'NVDA', 'BUY', 75, 208.59, '2026-02-03 14:00:00', 15644.25, -17441.85),
@@ -109,6 +113,7 @@ INSERT INTO Transactions (portfolio_id, asset_id, transaction_type, transaction_
 
 -- Dividend Income Portfolio (portfolio_id = 4) - Starting balance: 60,000
 INSERT INTO Transactions (portfolio_id, asset_id, transaction_type, transaction_quantity, transaction_price, transaction_date, transaction_total, balance_after_transaction) VALUES
+(4, Null, 'DEPOSIT', 0, 0, '2026-01-12 16:15:00', 60000.00, 60000.00),
 (4, 'V', 'BUY', 85, 355.14, '2026-01-14 10:00:00', 30186.90, 29813.10),
 (4, 'MCD', 'BUY', 110, 263.88, '2026-01-22 12:00:00', 29026.80, 786.30),
 (4, 'SBUX', 'BUY', 200, 104.36, '2026-02-08 13:45:00', 20872.00, -20085.70),
@@ -116,6 +121,7 @@ INSERT INTO Transactions (portfolio_id, asset_id, transaction_type, transaction_
 
 -- Emerging Investor Portfolio (portfolio_id = 5) - Starting balance: 25,000
 INSERT INTO Transactions (portfolio_id, asset_id, transaction_type, transaction_quantity, transaction_price, transaction_date, transaction_total, balance_after_transaction) VALUES
+(4, Null, 'DEPOSIT', 0, 0, '2026-01-12 16:15:00', 25000.00, 25000.00),
 (5, 'SPY', 'BUY', 20, 747.46, '2026-01-20 09:00:00', 14949.20, 10050.80),
 (5, 'AMZN', 'BUY', 40, 244.19, '2026-02-05 10:30:00', 9767.60, 283.20),
 (5, 'GLD', 'BUY', 30, 380.37, '2026-03-01 14:00:00', 11411.10, -11127.90);
@@ -131,3 +137,4 @@ INSERT INTO Transactions (portfolio_id, asset_id, transaction_type, transaction_
 -- SELECT * FROM Assets ORDER BY asset_type, asset_id;
 -- SELECT * FROM Portfolios;
 -- SELECT * FROM Transactions ORDER BY portfolio_id, transaction_date;
+
