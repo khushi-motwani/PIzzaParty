@@ -28,7 +28,7 @@ class TransactionsDao:
         result = dbcursor.fetchall()
 
         for row in result:
-            transaction = TransactionsDTO(row[1], row[3], row[4], row[6], row[7], row[8], row[0], row[2], row[5])
+            transaction = TransactionsDTO(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8])
             self.transactions.append(transaction)
         dbcursor.close()
         return self.transactions
@@ -50,8 +50,8 @@ class TransactionsDao:
 
     def row_to_dto(self, row):
         return TransactionsDTO(
-            portfolio_id=row[1],
             transaction_id=row[0],
+            portfolio_id=row[1],
             asset_id=row[2],
             transaction_type=row[3],
             transaction_quantity=row[4],
