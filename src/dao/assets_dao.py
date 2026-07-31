@@ -29,8 +29,8 @@ class AssetsDao:
 
         for row in result:
             asset = AssetsDTO(
-                asset_name=row[1],
                 asset_id=row[0],
+                asset_name=row[1],
                 asset_type=row[2],
                 asset_sector=row[3],
                 asset_industry=row[4],
@@ -49,8 +49,8 @@ class AssetsDao:
             raise AssetNotFoundException(asset_id)
 
         return AssetsDTO(
-                asset_name=result[1],
                 asset_id=result[0],
+                asset_name=result[1],
                 asset_type=result[2],
                 asset_sector=result[3],
                 asset_industry=result[4],
@@ -65,8 +65,8 @@ class AssetsDao:
         favourite_assets = []
         for row in result:
             asset = AssetsDTO(
-                asset_name=row[1],
                 asset_id=row[0],
+                asset_name=row[1],
                 asset_type=row[2],
                 asset_sector=row[3],
                 asset_industry=row[4],
@@ -83,8 +83,8 @@ class AssetsDao:
         assets_by_type = []
         for row in result:
             asset = AssetsDTO(
-                asset_name=row[1],
                 asset_id=row[0],
+                asset_name=row[1],
                 asset_type=row[2],
                 asset_sector=row[3],
                 asset_industry=row[4],
@@ -101,8 +101,8 @@ class AssetsDao:
         assets_by_sector = []
         for row in result:
             asset = AssetsDTO(
-                            asset_name=row[1],
                             asset_id=row[0],
+                            asset_name=row[1],
                             asset_type=row[2],
                             asset_sector=row[3],
                             asset_industry=row[4],
@@ -119,8 +119,8 @@ class AssetsDao:
         assets_by_industry = []
         for row in result:
             asset = AssetsDTO(
-                            asset_name=row[1],
                             asset_id=row[0],
+                            asset_name=row[1],
                             asset_type=row[2],
                             asset_sector=row[3],
                             asset_industry=row[4],

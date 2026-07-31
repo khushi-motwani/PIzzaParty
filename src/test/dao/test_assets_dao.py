@@ -22,15 +22,15 @@ def test_get_all_assets(mock_get_db):
     mock_cursor = Mock()
     mock_connection = Mock()
     mock_cursor.fetchall.return_value = [
-        (1, "Apple", "STOCK", "Technology", "Hardware", 1),
-        (2, "Tesla", "STOCK", "Consumer", "Auto", 0)
+       ('AAPL', 'Apple', 'STOCK', 'Technology', 'Hardware', True),
+        ('TSLA', 'Tesla', 'STOCK', 'Technology', 'Auto Manufacturers', False)
     ]
     mock_connection.cursor.return_value = mock_cursor
     mock_get_db.return_value = mock_connection
 
     dao = AssetsDao()
     result = dao.get_all()
-
+    print(result)
     assert len(result) == 2
     assert result[0].asset_name == "Apple"
     assert result[1].asset_name == "Tesla"
@@ -55,17 +55,17 @@ def test_get_all_empty_table(mock_get_db):
 def test_get_by_id(mock_get_db):
     mock_cursor = Mock()
     mock_connection = Mock()
-    mock_cursor.fetchone.return_value = (1, "Apple", "STOCK", "Technology", "Hardware", 1)
+    mock_cursor.fetchone.return_value = ('AAPL', 'Apple', 'STOCK', 'Technology', 'Hardware', True)
     mock_connection.cursor.return_value = mock_cursor
     mock_get_db.return_value = mock_connection
 
     dao = AssetsDao()
     result = dao.get_by_id(1)
 
-    assert result.asset_id == 1
+    assert result.asset_id == "AAPL"
     assert result.asset_name == "Apple"
     assert result.asset_type == "STOCK"
-    assert result.is_favourite == 1
+    assert result.is_favourite is True
 
 
 @patch('dao.assets_dao.get_db_connection')
@@ -90,8 +90,8 @@ def test_get_all_favourite_assets(mock_get_db):
     mock_cursor = Mock()
     mock_connection = Mock()
     mock_cursor.fetchall.return_value = [
-        (1, "Apple", "STOCK", "Technology", "Hardware", 1),
-        (3, "Microsoft", "STOCK", "Technology", "Software", 1)
+        ('AAPL', 'Apple', 'STOCK', 'Technology', 'Hardware', True),
+        ('MSFT', "Microsoft", "STOCK", "Technology", "Software", True)
     ]
     mock_connection.cursor.return_value = mock_cursor
     mock_get_db.return_value = mock_connection
@@ -102,7 +102,7 @@ def test_get_all_favourite_assets(mock_get_db):
     assert len(result) == 2
     assert result[0].asset_name == "Apple"
     assert result[1].asset_name == "Microsoft"
-    assert all(asset.is_favourite == 1 for asset in result)
+    assert all(asset.is_favourite is True for asset in result)
 
 
 @patch('dao.assets_dao.get_db_connection')
@@ -124,8 +124,8 @@ def test_get_assets_by_type(mock_get_db):
     mock_cursor = Mock()
     mock_connection = Mock()
     mock_cursor.fetchall.return_value = [
-        (1, "Apple", "STOCK", "Technology", "Hardware", 1),
-        (2, "Tesla", "STOCK", "Consumer", "Auto", 0)
+       ('AAPL', 'Apple', 'STOCK', 'Technology', 'Hardware', True),
+       ('TSLA', 'Tesla', 'STOCK', 'Technology', 'Auto Manufacturers', False)
     ]
     mock_connection.cursor.return_value = mock_cursor
     mock_get_db.return_value = mock_connection
@@ -156,8 +156,8 @@ def test_get_assets_by_sector(mock_get_db):
     mock_cursor = Mock()
     mock_connection = Mock()
     mock_cursor.fetchall.return_value = [
-        (1, "Apple", "STOCK", "Technology", "Hardware", 1),
-        (3, "Microsoft", "STOCK", "Technology", "Software", 1)
+        ('AAPL', 'Apple', 'STOCK', 'Technology', 'Hardware', True),
+        ('MSFT', "Microsoft", "STOCK", "Technology", "Software", True)
     ]
     mock_connection.cursor.return_value = mock_cursor
     mock_get_db.return_value = mock_connection
@@ -188,7 +188,7 @@ def test_get_assets_by_industry(mock_get_db):
     mock_cursor = Mock()
     mock_connection = Mock()
     mock_cursor.fetchall.return_value = [
-        (1, "Apple", "STOCK", "Technology", "Hardware", 1)
+        ("AAPL", "Apple", "STOCK", "Technology", "Hardware", True)
     ]
     mock_connection.cursor.return_value = mock_cursor
     mock_get_db.return_value = mock_connection
@@ -250,7 +250,7 @@ def test_insert_asset(mock_get_db):
     mock_get_db.return_value = mock_connection
 
     dao = AssetsDao()
-    dao.insert_asset(4, "Google", "STOCK", "Technology", "Software", 1)
+    dao.insert_asset("GOOG", "Google", "STOCK", "Technology", "Software", True)
 
     mock_cursor.execute.assert_called_once()
     mock_connection.commit.assert_called_once()
@@ -263,8 +263,8 @@ def test_update_asset(mock_get_db):
     mock_connection.cursor.return_value = mock_cursor
     mock_get_db.return_value = mock_connection
 
-    dao = AssetsDao()
-    dao.update_asset(1, "Apple Inc", "STOCK", "Technology", "Hardware")
+    dao = AssetsDao() 
+    dao.update_asset("AAPL", "Apple", "STOCK", "Technology", "Hardware")
 
     mock_cursor.execute.assert_called_once()
     mock_connection.commit.assert_called_once()
@@ -278,7 +278,7 @@ def test_update_asset_favourite_status(mock_get_db):
     mock_get_db.return_value = mock_connection
 
     dao = AssetsDao()
-    dao.update_asset_favourite_status(1, 0)
+    dao.update_asset_favourite_status(True, False)
 
     mock_cursor.execute.assert_called_once()
     mock_connection.commit.assert_called_once()
