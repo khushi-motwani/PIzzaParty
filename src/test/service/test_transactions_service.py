@@ -1,49 +1,49 @@
-import pytest
-from unittest.mock import MagicMock, patch
-from decimal import Decimal
-from datetime import datetime
-from service.transactions_service import TransactionsService
-from dto.portfolios_dto import PortfoliosDTO
-from dto.assets_dto import AssetsDTO
-from exception.validation_exceptions import (
-    InvalidQuantityException,
-    InvalidPriceException,
-    InvalidTransactionTypeException,
-    InsufficientFundsException,
-    PortfolioNotFoundException,
-    AssetNotFoundException,
-    ValidationException
-)
+# import pytest
+# from unittest.mock import MagicMock, patch
+# from decimal import Decimal
+# from datetime import datetime
+# from service.transactions_service import TransactionsService
+# from dto.portfolios_dto import PortfoliosDTO
+# from dto.assets_dto import AssetsDTO
+# from exception.validation_exceptions import (
+#     InvalidQuantityException,
+#     InvalidPriceException,
+#     InvalidTransactionTypeException,
+#     InsufficientFundsException,
+#     PortfolioNotFoundException,
+#     AssetNotFoundException,
+#     ValidationException
+# )
 
 
-class TestTransactionsService:
-    """Test TransactionsService validation logic."""
+# class TestTransactionsService:
+#     """Test TransactionsService validation logic."""
 
-    @pytest.fixture
-    def service(self):
-        """Create service with mocked DAOs."""
-        with patch('service.transactions_service.TransactionsDao'), \
-             patch('service.transactions_service.PortfoliosDao'), \
-             patch('service.transactions_service.AssetsDao'):
-            return TransactionsService()
+#     @pytest.fixture
+#     def service(self):
+#         """Create service with mocked DAOs."""
+#         with patch('service.transactions_service.TransactionsDao'), \
+#              patch('service.transactions_service.PortfoliosDao'), \
+#              patch('service.transactions_service.AssetsDao'):
+#             return TransactionsService()
 
-    @pytest.fixture
-    def mock_portfolio(self):
-        """Create a mock portfolio with balance."""
-        return PortfoliosDTO(
-            portfolio_name="Test Portfolio",
-            portfolio_balance=Decimal("1000.00"),
-            portfolio_id=1
-        )
+#     @pytest.fixture
+#     def mock_portfolio(self):
+#         """Create a mock portfolio with balance."""
+#         return PortfoliosDTO(
+#             portfolio_name="Test Portfolio",
+#             portfolio_balance=Decimal("1000.00"),
+#             portfolio_id=1
+#         )
 
-    @pytest.fixture
-    def mock_asset(self):
-        """Create a mock asset."""
-        return AssetsDTO(
-            asset_name="PIZZA001",
-            asset_type="FOOD",
-            asset_id="PIZZA001"
-        )
+#     @pytest.fixture
+#     def mock_asset(self):
+#         """Create a mock asset."""
+#         return AssetsDTO(
+#             asset_name="PIZZA001",
+#             asset_type="FOOD",
+#             asset_id="PIZZA001"
+#         )
 
     # # Quantity Validation Tests
     # def test_create_transaction_with_negative_quantity(self, service):

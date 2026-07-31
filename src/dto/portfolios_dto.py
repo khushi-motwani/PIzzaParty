@@ -1,5 +1,5 @@
 class PortfoliosDTO:
-    def __init__(self, portfolio_name, portfolio_balance=0, portfolio_id=None):
+    def __init__(self, portfolio_name, portfolio_id=None, portfolio_balance=0):
         self.portfolio_id = portfolio_id
         self.portfolio_name = portfolio_name
         self.portfolio_balance = portfolio_balance

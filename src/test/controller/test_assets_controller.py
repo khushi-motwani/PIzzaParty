@@ -5,9 +5,9 @@ import json
 
 @patch('controller.assets_controller.assets_service')
 def test_get_all_assets(mock_service, app_context):
-    asset1 = AssetsDTO("Apple", "STOCK", "Technology", "Hardware", 1)
-    asset2 = AssetsDTO("Tesla", "STOCK", "Consumer", "Auto", 0)
-
+    asset1 = AssetsDTO('AAPL', 'Apple', 'STOCK', 'Technology', 'Hardware', True)
+    asset2 = AssetsDTO('TSLA', 'Tesla', 'STOCK', 'Technology', 'Auto Manufacturers', False)
+        
     mock_service.get_all.return_value = [asset1, asset2]
     result = get_all_assets()
 
@@ -69,7 +69,7 @@ def test_update_favourite_status_to_false(mock_service, app_context, client):
 
 @patch('controller.assets_controller.assets_service')
 def test_get_asset_by_id(mock_service, app_context, client):
-    asset = AssetsDTO("Apple", "STOCK", "Technology", "Hardware", False, "AAPL")
+    asset = AssetsDTO('AAPL', 'Apple', 'STOCK', 'Technology', 'Hardware', True)
     mock_service.get_by_id = MagicMock(return_value=asset)
 
     response = client.get('/assets/AAPL')
@@ -82,8 +82,8 @@ def test_get_asset_by_id(mock_service, app_context, client):
 
 @patch('controller.assets_controller.assets_service')
 def test_get_favourite_assets(mock_service, app_context, client):
-    asset1 = AssetsDTO("Apple", "STOCK", "Technology", "Hardware", True, "AAPL")
-    asset2 = AssetsDTO("Tesla", "STOCK", "Consumer", "Auto", True, "TSLA")
+    asset1 = AssetsDTO('AAPL', 'Apple', 'STOCK', 'Technology', 'Hardware', True)
+    asset2 = AssetsDTO('TSLA', 'Tesla', 'STOCK', 'Technology', 'Auto Manufacturers', False)
     mock_service.get_all_favourite_assets = MagicMock(return_value=[asset1, asset2])
 
     response = client.get('/assets/favourite/all')
@@ -108,8 +108,8 @@ def test_get_favourite_assets_count(mock_service, app_context, client):
 
 @patch('controller.assets_controller.assets_service')
 def test_get_assets_by_type(mock_service, app_context, client):
-    asset1 = AssetsDTO("Apple", "STOCK", "Technology", "Hardware", False, "AAPL")
-    asset2 = AssetsDTO("Tesla", "STOCK", "Consumer", "Auto", False, "TSLA")
+    asset1 = AssetsDTO('AAPL', 'Apple', 'STOCK', 'Technology', 'Hardware', True)
+    asset2 = AssetsDTO('TSLA', 'Tesla', 'STOCK', 'Technology', 'Auto Manufacturers', False)
     mock_service.get_assets_by_type = MagicMock(return_value=[asset1, asset2])
 
     response = client.get('/assets/type/STOCK')
@@ -122,7 +122,7 @@ def test_get_assets_by_type(mock_service, app_context, client):
 
 @patch('controller.assets_controller.assets_service')
 def test_get_assets_by_sector(mock_service, app_context, client):
-    asset = AssetsDTO("Apple", "STOCK", "Technology", "Hardware", False, "AAPL")
+    asset = AssetsDTO('AAPL', 'Apple', 'STOCK', 'Technology', 'Hardware', True)
     mock_service.get_assets_by_sector = MagicMock(return_value=[asset])
 
     response = client.get('/assets/sector/Technology')
@@ -135,7 +135,7 @@ def test_get_assets_by_sector(mock_service, app_context, client):
 
 @patch('controller.assets_controller.assets_service')
 def test_get_assets_by_industry(mock_service, app_context, client):
-    asset = AssetsDTO("Apple", "STOCK", "Technology", "Hardware", False, "AAPL")
+    asset = AssetsDTO('AAPL', 'Apple', 'STOCK', 'Technology', 'Hardware', True)
     mock_service.get_assets_by_industry = MagicMock(return_value=[asset])
 
     response = client.get('/assets/industry/Hardware')
