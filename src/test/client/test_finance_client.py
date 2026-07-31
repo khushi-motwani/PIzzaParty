@@ -1,224 +1,196 @@
 import unittest
-from unittest.mock import Mock, patch, MagicMock
-import pandas as pd
+from unittest.mock import Mock, patch
 import requests
 from client.finance_client import FinanceClient
 from exception.finance_exceptions import TickerNotFoundError, FinanceApiError
 
 
-class TestFinanceClientYFinance(unittest.TestCase):
-    """Test yfinance as the primary data source"""
+class TestFinanceClientSuccess(unittest.TestCase):
+    """Test successful quote retrieval from the emulator API"""
 
     def setUp(self):
-        self.mock_ticker_factory = Mock()
         self.mock_http_client = Mock()
 
-    def test_get_quote_yfinance_success(self):
-        """yfinance returns valid data"""
-        mock_ticker = Mock()
-        mock_data = pd.DataFrame({
-            "Open": [149.5],
-            "High": [151.2],
-            "Low": [148.9],
-            "Close": [150.5],
-            "Volume": [1000000]
-        })
-        mock_ticker.history.return_value = mock_data
-        self.mock_ticker_factory.return_value = mock_ticker
+    def test_get_quote_success(self):
+        """Successfully fetch quote from the finance emulator"""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "ticker": "AAPL",
+            "name": "Apple Inc.",
+            "sector": "Technology",
+            "currency": "USD",
+            "price": 150.5,
+            "previousClose": 149.75,
+            "change": 0.75,
+            "changePercent": 0.50,
+            "dayHigh": 151.2,
+            "dayLow": 148.9,
+            "fiftyTwoWeekHigh": 199.0,
+            "fiftyTwoWeekLow": 120.0,
+            "volume": 1000000,
+            "asOf": "2024-01-15"
+        }
+        self.mock_http_client.get.return_value = mock_response
 
-        client = FinanceClient(ticker_factory=self.mock_ticker_factory, http_client=self.mock_http_client)
+        client = FinanceClient(http_client=self.mock_http_client, base_url="http://test:4000")
         quote = client.get_quote("AAPL")
 
         self.assertEqual(quote.ticker, "AAPL")
         self.assertEqual(quote.price, 150.5)
         self.assertEqual(quote.currency, "USD")
+        self.assertEqual(quote.previous_close, 149.75)
         self.assertEqual(quote.day_high, 151.2)
         self.assertEqual(quote.day_low, 148.9)
-        self.mock_ticker_factory.assert_called_once_with("AAPL")
-        # HTTP client should not be called when yfinance succeeds
-        self.mock_http_client.get.assert_not_called()
+        self.assertIsNone(quote.market_cap)
 
-    def test_get_quote_yfinance_empty_history(self):
-        """yfinance returns empty DataFrame, falls back to cached API"""
-        mock_ticker = Mock()
-        mock_ticker.history.return_value = pd.DataFrame()
-        self.mock_ticker_factory.return_value = mock_ticker
+        # Verify the correct API call was made
+        self.mock_http_client.get.assert_called_once_with(
+            "http://test:4000/quote",
+            params={"ticker": "AAPL"},
+            timeout=5
+        )
 
+    def test_get_quote_lowercase_ticker(self):
+        """Uppercase ticker before sending to API"""
         mock_response = Mock()
+        mock_response.status_code = 200
         mock_response.json.return_value = {
-            "ticker": "AAPL",
-            "price_data": {
-                "close": [194.5, 195.2, 195.5]
-            }
+            "ticker": "TSLA",
+            "price": 197.5,
+            "currency": "USD",
+            "previousClose": 196.2,
+            "dayHigh": 200.1,
+            "dayLow": 195.3
         }
         self.mock_http_client.get.return_value = mock_response
 
-        client = FinanceClient(ticker_factory=self.mock_ticker_factory, http_client=self.mock_http_client)
-        quote = client.get_quote("AAPL")
+        client = FinanceClient(http_client=self.mock_http_client, base_url="http://test:4000")
+        quote = client.get_quote("tsla")
 
-        self.assertEqual(quote.ticker, "AAPL")
-        self.assertEqual(quote.price, 195.5)
-        self.assertEqual(quote.previous_close, 195.2)
-        # HTTP client should be called when yfinance fails
-        self.mock_http_client.get.assert_called_once()
+        self.assertEqual(quote.ticker, "tsla")
+        self.assertEqual(quote.price, 197.5)
 
-    def test_get_quote_yfinance_failure_cached_api_success(self):
-        """yfinance fails, falls back to cached API"""
-        self.mock_ticker_factory.side_effect = Exception("Network error")
+        # Verify ticker was uppercased in the API call
+        self.mock_http_client.get.assert_called_once_with(
+            "http://test:4000/quote",
+            params={"ticker": "TSLA"},
+            timeout=5
+        )
 
+    def test_get_quote_uses_default_base_url(self):
+        """Use localhost:4000 as default base URL"""
         mock_response = Mock()
+        mock_response.status_code = 200
         mock_response.json.return_value = {
-            "ticker": "AAPL",
-            "price_data": {
-                "close": [194.5, 195.5]
-            }
+            "ticker": "MSFT",
+            "price": 445.2,
+            "currency": "USD",
+            "previousClose": 443.1,
+            "dayHigh": 450.0,
+            "dayLow": 442.1
         }
         self.mock_http_client.get.return_value = mock_response
 
-        client = FinanceClient(ticker_factory=self.mock_ticker_factory, http_client=self.mock_http_client)
-        quote = client.get_quote("AAPL")
+        client = FinanceClient(http_client=self.mock_http_client)
+        quote = client.get_quote("MSFT")
 
-        self.assertEqual(quote.price, 195.5)
-        self.mock_http_client.get.assert_called_once()
+        self.assertEqual(quote.price, 445.2)
+
+        # Verify default URL was used
+        call_args = self.mock_http_client.get.call_args
+        self.assertIn("http://localhost:4000", call_args[0][0])
 
 
-class TestFinanceClientFallback(unittest.TestCase):
-    """Test fallback mechanisms (cached API and mock data)"""
+class TestFinanceClientErrors(unittest.TestCase):
+    """Test error handling"""
 
     def setUp(self):
-        self.mock_ticker_factory = Mock()
         self.mock_http_client = Mock()
 
-    def test_fallback_to_cached_api_success(self):
-        """Cached API returns valid data after yfinance fails"""
-        mock_ticker = Mock()
-        mock_ticker.history.return_value = pd.DataFrame()
-        self.mock_ticker_factory.return_value = mock_ticker
-
+    def test_get_quote_ticker_not_found(self):
+        """404 response raises TickerNotFoundError"""
         mock_response = Mock()
-        mock_response.json.return_value = {
-            "ticker": "AMZN",
-            "price_data": {
-                "close": [174.5, 174.8, 175.0, 175.2, 175.3]
-            }
-        }
+        mock_response.status_code = 404
         self.mock_http_client.get.return_value = mock_response
 
-        client = FinanceClient(ticker_factory=self.mock_ticker_factory, http_client=self.mock_http_client)
-        quote = client.get_quote("AMZN")
-
-        self.assertEqual(quote.ticker, "AMZN")
-        self.assertEqual(quote.price, 175.3)
-        self.assertEqual(quote.previous_close, 175.2)
-        self.assertEqual(quote.day_high, 175.3)
-        self.assertEqual(quote.day_low, 174.5)
-
-    def test_fallback_to_mock_data_known_ticker(self):
-        """Falls back to mock data when both APIs fail"""
-        mock_ticker = Mock()
-        mock_ticker.history.return_value = pd.DataFrame()
-        self.mock_ticker_factory.return_value = mock_ticker
-
-        # Cached API raises exception
-        self.mock_http_client.get.side_effect = requests.RequestException("API unavailable")
-
-        client = FinanceClient(ticker_factory=self.mock_ticker_factory, http_client=self.mock_http_client)
-        quote = client.get_quote("AAPL")
-
-        self.assertEqual(quote.ticker, "AAPL")
-        # Should use mock data
-        self.assertEqual(quote.price, 195.5)
-        self.assertEqual(quote.day_high, 198.2)
-
-    def test_fallback_to_mock_data_unknown_ticker(self):
-        """Unknown ticker raises TickerNotFoundError even with fallback"""
-        mock_ticker = Mock()
-        mock_ticker.history.return_value = pd.DataFrame()
-        self.mock_ticker_factory.return_value = mock_ticker
-
-        self.mock_http_client.get.side_effect = requests.RequestException("API unavailable")
-
-        client = FinanceClient(ticker_factory=self.mock_ticker_factory, http_client=self.mock_http_client)
+        client = FinanceClient(http_client=self.mock_http_client, base_url="http://test:4000")
 
         with self.assertRaises(TickerNotFoundError) as context:
             client.get_quote("UNKNOWNTICKER")
 
-        self.assertIn("not found", str(context.exception).lower())
+        self.assertIn("UNKNOWNTICKER", str(context.exception))
 
-    def test_cached_api_invalid_response(self):
-        """Cached API returns invalid response, falls back to mock data"""
-        mock_ticker = Mock()
-        mock_ticker.history.return_value = pd.DataFrame()
-        self.mock_ticker_factory.return_value = mock_ticker
+    def test_get_quote_network_error(self):
+        """Network error raises FinanceApiError"""
+        self.mock_http_client.get.side_effect = requests.ConnectionError("Connection failed")
 
-        # API returns response without proper price_data structure
+        client = FinanceClient(http_client=self.mock_http_client, base_url="http://test:4000")
+
+        with self.assertRaises(FinanceApiError) as context:
+            client.get_quote("AAPL")
+
+        self.assertIn("yahoo-finance-emulator", str(context.exception))
+
+    def test_get_quote_timeout(self):
+        """Request timeout raises FinanceApiError"""
+        self.mock_http_client.get.side_effect = requests.Timeout("Request timed out")
+
+        client = FinanceClient(http_client=self.mock_http_client, base_url="http://test:4000")
+
+        with self.assertRaises(FinanceApiError):
+            client.get_quote("AAPL")
+
+    def test_get_quote_invalid_json(self):
+        """Invalid JSON response raises FinanceApiError"""
         mock_response = Mock()
-        mock_response.json.return_value = {"ticker": "TSLA", "invalid": "data"}
+        mock_response.status_code = 200
+        mock_response.json.side_effect = ValueError("Invalid JSON")
         self.mock_http_client.get.return_value = mock_response
 
-        client = FinanceClient(ticker_factory=self.mock_ticker_factory, http_client=self.mock_http_client)
-        quote = client.get_quote("TSLA")
+        client = FinanceClient(http_client=self.mock_http_client, base_url="http://test:4000")
 
-        # Should fall back to mock data
-        self.assertEqual(quote.price, 197.5)
-        self.assertEqual(quote.day_high, 200.1)
-        self.assertEqual(quote.day_low, 195.3)
+        with self.assertRaises(FinanceApiError):
+            client.get_quote("AAPL")
+
+    def test_get_quote_http_error(self):
+        """HTTP error (500, etc.) raises FinanceApiError"""
+        mock_response = Mock()
+        mock_response.status_code = 500
+        mock_response.raise_for_status.side_effect = requests.HTTPError("Internal Server Error")
+        self.mock_http_client.get.return_value = mock_response
+
+        client = FinanceClient(http_client=self.mock_http_client, base_url="http://test:4000")
+
+        with self.assertRaises(FinanceApiError):
+            client.get_quote("AAPL")
 
 
 class TestFinanceClientLogging(unittest.TestCase):
     """Test logging behavior"""
 
     def setUp(self):
-        self.mock_ticker_factory = Mock()
         self.mock_http_client = Mock()
 
     @patch('client.finance_client.logger')
-    def test_logs_yfinance_success(self, mock_logger):
-        """Logs when yfinance succeeds"""
-        mock_ticker = Mock()
-        mock_data = pd.DataFrame({
-            "Open": [150], "High": [151], "Low": [149], "Close": [150.5], "Volume": [1000000]
-        })
-        mock_ticker.history.return_value = mock_data
-        self.mock_ticker_factory.return_value = mock_ticker
-
-        client = FinanceClient(ticker_factory=self.mock_ticker_factory, http_client=self.mock_http_client)
-        client.get_quote("AAPL")
-
-        mock_logger.info.assert_called_with("Retrieved data for AAPL from yfinance")
-
-    @patch('client.finance_client.logger')
-    def test_logs_cached_api_fallback(self, mock_logger):
-        """Logs when falling back to cached API"""
-        mock_ticker = Mock()
-        mock_ticker.history.return_value = pd.DataFrame()
-        self.mock_ticker_factory.return_value = mock_ticker
-
+    def test_logs_success(self, mock_logger):
+        """Logs when quote is successfully retrieved"""
         mock_response = Mock()
-        mock_response.json.return_value = {"price": 195.5, "day_high": 198.2, "day_low": 194.9}
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "ticker": "AAPL",
+            "price": 150.5,
+            "currency": "USD",
+            "previousClose": 149.75,
+            "dayHigh": 151.2,
+            "dayLow": 148.9
+        }
         self.mock_http_client.get.return_value = mock_response
 
-        client = FinanceClient(ticker_factory=self.mock_ticker_factory, http_client=self.mock_http_client)
+        client = FinanceClient(http_client=self.mock_http_client, base_url="http://test:4000")
         client.get_quote("AAPL")
 
-        # Should log both failure and fallback
-        calls = [str(call) for call in mock_logger.method_calls]
-        self.assertTrue(any("yfinance failed" in str(call) for call in calls))
-        self.assertTrue(any("cached API" in str(call) for call in calls))
-
-    @patch('client.finance_client.logger')
-    def test_logs_mock_data_warning(self, mock_logger):
-        """Logs warning when using mock data"""
-        mock_ticker = Mock()
-        mock_ticker.history.return_value = pd.DataFrame()
-        self.mock_ticker_factory.return_value = mock_ticker
-        self.mock_http_client.get.side_effect = requests.RequestException("API down")
-
-        client = FinanceClient(ticker_factory=self.mock_ticker_factory, http_client=self.mock_http_client)
-        client.get_quote("AAPL")
-
-        mock_logger.warning.assert_called()
-        self.assertIn("mock data", str(mock_logger.warning.call_args))
+        mock_logger.info.assert_called_with("Retrieved data for AAPL from yahoo-finance-emulator")
 
 
 if __name__ == '__main__':
