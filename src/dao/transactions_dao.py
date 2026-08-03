@@ -49,7 +49,7 @@ class TransactionsDao:
         return dbcursor.lastrowid
 
     def row_to_dto(self, row):
-        return TransactionsDTO(row[1], row[3], row[4], row[6], row[7], row[8], row[0], row[2], row[5])
+        return TransactionsDTO(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8])
 
     def get_transaction_by_id(self, transaction_id):
         dbcursor = self._get_connection().cursor()
