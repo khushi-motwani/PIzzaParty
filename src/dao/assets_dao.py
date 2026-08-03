@@ -27,6 +27,7 @@ class AssetsDao:
         dbcursor.execute("SELECT * FROM Assets")
         result = dbcursor.fetchall()
 
+        assets = []
         for row in result:
             asset = AssetsDTO(
                 asset_id=row[0],
@@ -36,8 +37,8 @@ class AssetsDao:
                 asset_industry=row[4],
                 is_favourite=bool(row[5])
             )
-            self.assets.append(asset)
-        return self.assets
+            assets.append(asset)
+        return assets
 
 
     def get_by_id(self, asset_id):
