@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from decimal import Decimal
 from datetime import datetime
 from service.transactions_service import TransactionsService
+from dto.transactions_dto import TransactionsDTO
 from dto.portfolios_dto import PortfoliosDTO
 from dto.assets_dto import AssetsDTO
 from exception.validation_exceptions import (
@@ -15,24 +16,23 @@ from exception.validation_exceptions import (
     ValidationException
 )
 
+class TestTransactionsService:
+    """Test TransactionsService validation logic."""
 
-# class TestTransactionsService:
-#     """Test TransactionsService validation logic."""
-
-#     @pytest.fixture
-#     def service(self):
-#         """Create service with mocked DAOs."""
-#         with patch('service.transactions_service.TransactionsDao'), \
-#              patch('service.transactions_service.PortfoliosDao'), \
-#              patch('service.transactions_service.AssetsDao'):
-#             return TransactionsService()
+    @pytest.fixture
+    def service(self):
+        """Create service with mocked DAOs."""
+        with patch('service.transactions_service.TransactionsDao'), \
+             patch('service.transactions_service.PortfoliosDao'), \
+             patch('service.transactions_service.AssetsDao'):
+            return TransactionsService()
 
     @pytest.fixture
     def mock_portfolio(self):
         """Create a mock portfolio with balance."""
         return PortfoliosDTO(
             portfolio_name="Test Portfolio",
-            portfolio_balance=Decimal("1000.00"),
+            portfolio_balance=1000.00,
             portfolio_id=1
         )
 
@@ -40,27 +40,37 @@ from exception.validation_exceptions import (
     def mock_asset(self):
         """Create a mock asset."""
         return AssetsDTO(
-            asset_name="PIZZA001",
-            asset_type="FOOD",
-            asset_id="PIZZA001"
+            asset_id="PIZZA001",
+            asset_name="PIZZA",
+            asset_type="SLICE",
+            asset_sector="DINING",
+            asset_industry="FOOD",
+            is_favourite=False
         )
+    
+    def test_get_all_returns_transactions(self, service):
+        transaction1 = TransactionsDTO(1, 1, "PIZZA", "BUY", 10, 150.00, "2024-01-15", 1500.00, 1500.00)
+        transaction2 = TransactionsDTO(1, 1, "PIZZA", "SELL", 5, 250.00, "2024-01-20", 1250.00, 2750.00)
+        
+        service.transactions_dao.get_all = MagicMock(return_value=[transaction1, transaction2])
 
-    # # Quantity Validation Tests
-    # def test_create_transaction_with_negative_quantity(self, service):
-    #     """Test that negative quantity raises InvalidQuantityException."""
-    #     service.portfolios_dao.get_by_id = MagicMock(return_value=PortfoliosDTO("Test", Decimal("1000")))
-
-    #     with pytest.raises(InvalidQuantityException) as exc_info:
-    #         service.create_transaction(1, "PIZZA001", "BUY", -5, 10.00)
-
-    #     assert "Invalid quantity: -5" in str(exc_info.value)
-
-    # def test_create_transaction_with_zero_quantity(self, service):
-    #     """Test that zero quantity raises InvalidQuantityException."""
-    #     service.portfolios_dao.get_by_id = MagicMock(return_value=PortfoliosDTO("Test", Decimal("1000")))
-
-    #     with pytest.raises(InvalidQuantityException) as exc_info:
-    #         service.create_transaction(1, "PIZZA001", "BUY", 0, 10.00)
+        result = service.get_all()
+        
+        assert len(result) == 2
+        assert result[0].transaction_type == "BUY"
+        assert result[1].transaction_type == "SELL"
+        service.transactions_dao.get_all.assert_called_once()
+        
+    def test_count_returns_count(self, service):
+        service.transactions_dao.count.return_value = 5
+        result = service.count()
+        assert result == 5
+        service.transactions_dao.count.assert_called_once()
+    
+    def test_invalid_transaction_type(self, service):
+        invalid_transaction_type = "TRANSFER"
+        with pytest.raises(InvalidTransactionTypeException):
+            service.create(1, "PIZZA", f"{invalid_transaction_type}", 10, 150.00, "2024-01-15", 1500.00, 48500.00)
 
     # Balance Calculation Tests
     def test_buy_transaction_calculates_new_balance_correctly(self, service, mock_portfolio, mock_asset):
