@@ -21,7 +21,11 @@ class PortfoliosDao:
 
         self.portfolios = []
         for row in result:
-            portfolio = PortfoliosDTO(row[1], row[2], row[0])
+            portfolio = PortfoliosDTO(
+                portfolio_name=row[1],
+                portfolio_id=row[0],
+                portfolio_balance=row[2]
+            )
             self.portfolios.append(portfolio)
         return self.portfolios
 
@@ -33,7 +37,11 @@ class PortfoliosDao:
         if result is None:
             raise PortfolioNotFoundException(portfolio_id)
 
-        return PortfoliosDTO(result[1], result[2], result[0])
+        return PortfoliosDTO(
+            portfolio_name=result[1],
+            portfolio_id=result[0],
+            portfolio_balance=result[2]
+        )
 
     def get_portfolio_balance(self, portfolio_id):
         dbcursor = self._get_connection().cursor()
@@ -46,7 +54,11 @@ class PortfoliosDao:
         if result is None:
             raise PortfolioNotFoundException(portfolio_id)
 
-        return PortfoliosDTO(result[1], result[2], result[0])
+        return PortfoliosDTO(
+            portfolio_name=result[1],
+            portfolio_id=result[0],
+            portfolio_balance=result[2]
+        )
 
     def get_total_balance(self):
         dbcursor = self._get_connection().cursor()
@@ -72,7 +84,11 @@ class PortfoliosDao:
 
         self.portfolios = []
         for row in result:
-            portfolio = PortfoliosDTO(row[1], row[2], row[0])
+            portfolio = PortfoliosDTO(
+                portfolio_name=row[1],
+                portfolio_id=row[0],
+                portfolio_balance=row[2]
+            )
             self.portfolios.append(portfolio)
         return self.portfolios
 
@@ -83,7 +99,11 @@ class PortfoliosDao:
 
         self.portfolios = []
         for row in result:
-            portfolio = PortfoliosDTO(row[1], row[2], row[0])
+            portfolio = PortfoliosDTO(
+                portfolio_name=row[1],
+                portfolio_id=row[0],
+                portfolio_balance=row[2]
+            )
             self.portfolios.append(portfolio)
         return self.portfolios
 

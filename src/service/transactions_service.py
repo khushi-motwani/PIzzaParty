@@ -10,8 +10,6 @@ from exception.validation_exceptions import (
     InvalidQuantityException,
     InvalidPriceException,
     InvalidTransactionTypeException,
-    TransactionsNotFoundException,
-    InvalidDateRange,
     PortfolioNotFoundException,
     AssetNotFoundException
 )
@@ -19,67 +17,17 @@ from exception.validation_exceptions import (
 logger = logging.getLogger('pizzaparty')
 
 class TransactionsService:
-    VALID_TRANSACTION_TYPES = ["BUY", "SELL", "DEPOSIT", "WITHDRAW"]
+    VALID_TRANSACTION_TYPES = ["BUY", "SELL"]
 
     def __init__(self):
         self.transactions_dao = TransactionsDao()
         self.portfolios_dao = PortfoliosDao()
         self.assets_dao = AssetsDao()
-    
-    def _get_transaction(self, transaction_id):
-        try:
-            logger.debug(f"Transaction retrieved: ID={transaction_id}")
-            return self.transactions_dao.get_by_id(transaction_id)
-        except Exception as e:
-            raise TransactionsNotFoundException(transaction_id) from e
-   
-    def _validate_transaction_id(self, transaction_id):
-            """Validate that transaction ID is valid and transaction exists."""
-            if transaction_id is None or transaction_id <= 0:
-                logger.critical(f"Invalid transaction ID: {transaction_id}")
-                raise ValueError("Transaction ID must be a positive integer.")
-            try:
-                self.transactions_dao.get_by_id(transaction_id)
-            except Exception:
-                logger.critical(f"Transaction not found: {transaction_id}")
-                raise
-            
-    def _validate_transaction_type(self, transaction_type):
-        if transaction_type not in self.VALID_TRANSACTION_TYPES:
-                logger.warning(f"Invalid transaction type attempted: {transaction_type}")
-                raise InvalidTransactionTypeException(transaction_type, self.VALID_TRANSACTION_TYPES)
-                
-    def _get_portfolio(self, portfolio_id):
-            try:
-                logger.debug(f"Portfolio retrieved: ID={portfolio_id}")
-                return self.portfolios_dao.get_by_id(portfolio_id)
-            except Exception as e:
-                raise PortfolioNotFoundException(portfolio_id) from e
-            
-    def _validate_portfolio_id(self, portfolio_id):
-        """Validate that portfolio ID is valid and portfolio exists."""
-        if portfolio_id is None or portfolio_id <= 0:
-            logger.critical(f"Invalid portfolio ID: {portfolio_id}")
-            raise ValueError("Portfolio ID must be a positive integer.")
-        try:
-            self.portfolios_dao.get_by_id(portfolio_id)
-        except Exception:
-            logger.critical(f"Portfolio not found: {portfolio_id}")
-            raise
-        
-    # validate monetary values to reuse for balance_after_transaction, transaction_price and transaction_total
-    def _validate_monetary_input(self, value):
-        if value is None or not isinstance(value, (int, float, Decimal)):
-            logger.critical(f"Invalid balance type: {value}")
-            raise ValueError(f"{value} must be a valid number: {value}")
-        if value < 0:
-            logger.critical(f"Negative {value} not allowed: {value}")
-            raise ValueError(f"{value} cannot be negative.")
-    
+
     def get_all(self):
         logger.debug("Retrieving all transactions")
         return self.transactions_dao.get_all()
-    
+
     def count(self):
         logger.debug("Counting total transactions")
         return self.transactions_dao.count()
@@ -122,9 +70,10 @@ class TransactionsService:
     def _create_buy_transaction(self, portfolio_id, asset_id, quantity, price):
         logger.info(f"Creating BUY transaction: portfolio={portfolio_id}, asset={asset_id}")
 
-        # Validate quantity
-        if not isinstance(quantity, (int, float)) or quantity <= 0:
-            raise InvalidQuantityException(quantity)
+            # Validate quantity
+            if not isinstance(quantity, (int, float)) or quantity <= 0:
+                logger.warning(f"Invalid quantity attempted: {quantity}")
+                raise InvalidQuantityException(quantity)
 
         # Validate price
         if not isinstance(price, (int, float, Decimal)) or price <= 0:

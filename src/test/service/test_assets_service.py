@@ -18,18 +18,18 @@ class TestAssetsService:
     def mock_asset(self):
         """Create a mock asset."""
         return AssetsDTO(
+            asset_id="AAPL",
             asset_name="Apple",
             asset_type="STOCK",
             asset_sector="Technology",
             asset_industry="Hardware",
             is_favourite=False,
-            asset_id=1
         )
 
     def test_get_all(self, service):
         """Test get_all returns list of assets."""
-        asset1 = AssetsDTO("Apple", "STOCK", "Technology", "Hardware", False, 1)
-        asset2 = AssetsDTO("Tesla", "STOCK", "Consumer", "Auto", True, 2)
+        asset1 = AssetsDTO('AAPL', 'Apple', 'STOCK', 'Technology', 'Hardware', True)
+        asset2 = AssetsDTO('TSLA', 'Tesla', 'STOCK', 'Technology', 'Auto Manufacturers', False)
         service.assets_dao.get_all = MagicMock(return_value=[asset1, asset2])
 
         result = service.get_all()
@@ -104,7 +104,7 @@ class TestAssetsService:
 
         result = service.get_by_id(1)
 
-        assert result.asset_id == 1
+        assert result.asset_id == 'AAPL'
         assert result.asset_name == "Apple"
         service.assets_dao.get_by_id.assert_called_once_with(1)
 
@@ -119,15 +119,15 @@ class TestAssetsService:
 
     def test_get_all_favourite_assets(self, service):
         """Test get_all_favourite_assets returns list of favourite assets."""
-        asset1 = AssetsDTO("Apple", "STOCK", "Technology", "Hardware", True, 1)
-        asset2 = AssetsDTO("Tesla", "STOCK", "Consumer", "Auto", True, 2)
+        asset1 = AssetsDTO('AAPL', 'Apple', 'STOCK', 'Technology', 'Hardware', True)
+        asset2 = AssetsDTO('TSLA', 'Tesla', 'STOCK', 'Technology', 'Auto Manufacturers', False)
         service.assets_dao.get_all_favourite_assets = MagicMock(return_value=[asset1, asset2])
 
         result = service.get_all_favourite_assets()
 
         assert len(result) == 2
         assert result[0].is_favourite is True
-        assert result[1].is_favourite is True
+        assert result[1].is_favourite is False
         service.assets_dao.get_all_favourite_assets.assert_called_once()
 
     def test_get_all_favourite_assets_empty(self, service):
@@ -148,8 +148,8 @@ class TestAssetsService:
 
     def test_get_assets_by_type(self, service):
         """Test get_assets_by_type returns assets of specific type."""
-        asset1 = AssetsDTO("Apple", "STOCK", "Technology", "Hardware", False, 1)
-        asset2 = AssetsDTO("Tesla", "STOCK", "Consumer", "Auto", False, 2)
+        asset1 = AssetsDTO('AAPL', 'Apple', 'STOCK', 'Technology', 'Hardware', True)
+        asset2 = AssetsDTO('TSLA', 'Tesla', 'STOCK', 'Technology', 'Auto Manufacturers', False)
         service.assets_dao.get_assets_by_type = MagicMock(return_value=[asset1, asset2])
 
         result = service.get_assets_by_type("STOCK")
@@ -160,7 +160,7 @@ class TestAssetsService:
 
     def test_get_assets_by_sector(self, service):
         """Test get_assets_by_sector returns assets of specific sector."""
-        asset = AssetsDTO("Apple", "STOCK", "Technology", "Hardware", False, 1)
+        asset = AssetsDTO('AAPL', 'Apple', 'STOCK', 'Technology', 'Hardware', True)
         service.assets_dao.get_assets_by_sector = MagicMock(return_value=[asset])
 
         result = service.get_assets_by_sector("Technology")
@@ -171,7 +171,7 @@ class TestAssetsService:
 
     def test_get_assets_by_industry(self, service):
         """Test get_assets_by_industry returns assets of specific industry."""
-        asset = AssetsDTO("Apple", "STOCK", "Technology", "Hardware", False, 1)
+        asset = AssetsDTO('AAPL', 'Apple', 'STOCK', 'Technology', 'Hardware', True)
         service.assets_dao.get_assets_by_industry = MagicMock(return_value=[asset])
 
         result = service.get_assets_by_industry("Hardware")
