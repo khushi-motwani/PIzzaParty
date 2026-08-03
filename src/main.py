@@ -2,6 +2,7 @@ from flask import Flask, jsonify
 import logging
 import logging.config
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 from controller.assets_controller import assets_bp
 from controller.portfolios_controller import portfolios_bp
 from controller.transactions_controller import transactions_bp
@@ -11,6 +12,7 @@ logging.config.fileConfig('logging.conf')
 logger = logging.getLogger('pizzaparty')
 
 app = Flask(__name__)
+CORS(app)
 
 @app.route('/health', methods=['GET'])
 def health():
