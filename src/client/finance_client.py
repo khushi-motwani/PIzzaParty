@@ -15,6 +15,9 @@ class FinanceClient:
     def get_quote(self, ticker):
         return self._get_from_finance_api(ticker)
 
+    def get_history(self, ticker, start=None, end=None):
+        return self._get_history_from_finance_api(ticker, start, end)
+
     def _get_from_finance_api(self, ticker):
         try:
             url = f"{self.base_url}/quote"
@@ -40,6 +43,30 @@ class FinanceClient:
                 day_high=data.get("dayHigh"),
                 day_low=data.get("dayLow")
             )
+        except TickerNotFoundError:
+            raise
+        except Exception as e:
+            raise FinanceApiError(ticker, "yahoo-finance-emulator")
+
+    def _get_history_from_finance_api(self, ticker, start=None, end=None):
+        try:
+            url = f"{self.base_url}/history"
+            params = {"ticker": ticker.upper()}
+            if start:
+                params["start"] = start
+            if end:
+                params["end"] = end
+
+            response = self.http_client.get(url, params=params, timeout=5)
+
+            if response.status_code == 404:
+                raise TickerNotFoundError(ticker)
+
+            response.raise_for_status()
+            data = response.json()
+
+            logger.info(f"Retrieved history for {ticker} from yahoo-finance-emulator")
+            return data
         except TickerNotFoundError:
             raise
         except Exception as e:

@@ -7,3 +7,6 @@ class FinanceService:
 
     def get_quote(self, ticker):
         return self.finance_client.get_quote(ticker)
+
+    def get_history(self, ticker, start=None, end=None):
+        return self.finance_client.get_history(ticker, start, end)
