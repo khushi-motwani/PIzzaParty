@@ -225,7 +225,7 @@ class TransactionsService:
         return self.transactions_dao.get_transaction_by_id(transaction_id)
  
     def get_transactions_by_portfolio(self, portfolio_id):
-        return self.transactions_dao.get_transaction_by_portfolio(portfolio_id)
+        return self.transactions_dao.get_transactions_by_portfolio(portfolio_id)
 
     def get_transactions_by_asset(self, portfolio_id, asset_id):
         return self.transactions_dao.get_transaction_by_asset(asset_id)
