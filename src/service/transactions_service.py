@@ -13,7 +13,8 @@ from exception.validation_exceptions import (
     TransactionsNotFoundException,
     InvalidDateRange,
     PortfolioNotFoundException,
-    AssetNotFoundException
+    AssetNotFoundException,
+    InsufficientAssetQuantityException
 )
 
 logger = logging.getLogger('pizzaparty')
@@ -156,7 +157,7 @@ class TransactionsService:
     
     def _create_sell_transaction(self, portfolio_id, asset_id, quantity, price):
         logger.info(f"Creating SELL transaction: portfolio={portfolio_id}, asset={asset_id}")
-        
+
         # Validate quantity
         if not isinstance(quantity, (int, float)) or quantity <= 0:
             raise InvalidQuantityException(quantity)
@@ -164,24 +165,30 @@ class TransactionsService:
         # Validate price
         if not isinstance(price, (int, float, Decimal)) or price <= 0:
             raise InvalidPriceException(price)
-        
+
         # Validate asset exists
         try:
             self.assets_dao.get_by_id(asset_id)
             logger.debug(f"Asset validated: {asset_id}")
         except Exception as e:
             raise AssetNotFoundException(asset_id) from e
-                
+
+        # Check inventory - verify portfolio owns enough of this asset
+        quantity_held = self.transactions_dao.get_asset_holding(portfolio_id, asset_id)
+        if quantity_held < quantity:
+            logger.warning(f"Insufficient asset quantity for SELL: asset={asset_id}, required={quantity}, available={quantity_held}")
+            raise InsufficientAssetQuantityException(asset_id, int(quantity), int(quantity_held))
+
         # Calculate transaction total
         transaction_total = Decimal(str(quantity)) * Decimal(str(price))
         logger.debug(f"Transaction total calculated: ${transaction_total}")
-        
+
         logger.info(f"Processing SELL order: asset_id={asset_id}, quantity={quantity}, price=${price}, total=${transaction_total}")
-        
+
         portfolio = self._get_portfolio(portfolio_id)
         new_balance = Decimal(str(portfolio.portfolio_balance)) + Decimal(str(transaction_total))
-        logger.debug(f"SEll validated: new_balance will be ${new_balance}")
-                
+        logger.debug(f"SELL validated: new_balance will be ${new_balance}")
+
         return (transaction_total, new_balance)
     
     def _create_deposit_transaction(self, portfolio_id, amount):
@@ -311,3 +318,18 @@ class TransactionsService:
         logger.info(f"Deleting transactions from portfolio: portfolio_id={portfolio_id}")
         self. _validate_portfolio_id(portfolio_id)
         return self.transactions_dao.delete_transactions_by_portfolio(portfolio_id)
+
+    def get_portfolio_holdings(self, portfolio_id):
+        logger.debug(f"Retrieving holdings for portfolio: {portfolio_id}")
+        self._validate_portfolio_id(portfolio_id)
+        return self.transactions_dao.get_portfolio_holdings(portfolio_id)
+
+    def get_asset_holding(self, portfolio_id, asset_id):
+        logger.debug(f"Retrieving holding for asset {asset_id} in portfolio: {portfolio_id}")
+        self._validate_portfolio_id(portfolio_id)
+        try:
+            self.assets_dao.get_by_id(asset_id)
+        except Exception as e:
+            raise AssetNotFoundException(asset_id) from e
+        quantity = self.transactions_dao.get_asset_holding(portfolio_id, asset_id)
+        return {"asset_id": asset_id, "quantity": quantity}

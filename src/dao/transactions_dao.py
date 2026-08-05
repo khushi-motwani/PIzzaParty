@@ -220,3 +220,36 @@ class TransactionsDao:
         connection.commit()
         dbcursor.close()
         return dbcursor.rowcount
+
+    def get_portfolio_holdings(self, portfolio_id):
+        dbcursor = self._get_connection().cursor()
+        dbcursor.execute(
+            """SELECT
+                asset_id,
+                SUM(CASE WHEN transaction_type = 'BUY' THEN transaction_quantity ELSE 0 END) -
+                SUM(CASE WHEN transaction_type = 'SELL' THEN transaction_quantity ELSE 0 END) as quantity_held
+            FROM Transactions
+            WHERE portfolio_id = %s AND asset_id IS NOT NULL
+            GROUP BY asset_id
+            HAVING quantity_held > 0
+            ORDER BY asset_id""",
+            (portfolio_id,)
+        )
+        result = dbcursor.fetchall()
+        dbcursor.close()
+        return [{"asset_id": row[0], "quantity": row[1]} for row in result]
+
+    def get_asset_holding(self, portfolio_id, asset_id):
+        dbcursor = self._get_connection().cursor()
+        dbcursor.execute(
+            """SELECT
+                SUM(CASE WHEN transaction_type = 'BUY' THEN transaction_quantity ELSE 0 END) -
+                SUM(CASE WHEN transaction_type = 'SELL' THEN transaction_quantity ELSE 0 END) as quantity_held
+            FROM Transactions
+            WHERE portfolio_id = %s AND asset_id = %s""",
+            (portfolio_id, asset_id)
+        )
+        result = dbcursor.fetchall()
+        dbcursor.close()
+        quantity = result[0][0] if result and result[0][0] is not None else 0
+        return quantity

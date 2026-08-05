@@ -426,3 +426,81 @@ def test_delete_transactions_by_portfolio_not_found(mock_get_db):
     )
     mock_connection.commit.assert_called_once()
     assert result == 0
+
+
+# Inventory/Holdings Tests
+@patch('dao.transactions_dao.get_db_connection')
+def test_get_portfolio_holdings_with_assets(mock_get_db):
+    """Test getting all holdings in a portfolio."""
+    rows = [
+        ("AAPL", 120),
+        ("MSFT", 70),
+    ]
+    dao, _, mock_cursor = make_mocked_dao(mock_get_db, rows)
+
+    result = dao.get_portfolio_holdings(1)
+
+    mock_cursor.execute.assert_called_once()
+    assert len(result) == 2
+    assert result[0] == {"asset_id": "AAPL", "quantity": 120}
+    assert result[1] == {"asset_id": "MSFT", "quantity": 70}
+
+
+@patch('dao.transactions_dao.get_db_connection')
+def test_get_portfolio_holdings_empty(mock_get_db):
+    """Test getting holdings for portfolio with no assets."""
+    dao, _, _ = make_mocked_dao(mock_get_db, [])
+
+    result = dao.get_portfolio_holdings(999)
+
+    assert result == []
+
+
+@patch('dao.transactions_dao.get_db_connection')
+def test_get_portfolio_holdings_excludes_zero_quantity(mock_get_db):
+    """Test that holdings with zero quantity are excluded by HAVING clause.
+
+    Note: The HAVING clause in SQL filters zero quantities at DB level.
+    When mocked, we simulate the DB already filtering the results.
+    """
+    rows = [
+        ("AAPL", 100),
+    ]
+    dao, _, _ = make_mocked_dao(mock_get_db, rows)
+
+    result = dao.get_portfolio_holdings(1)
+
+    # Only AAPL should be returned (GOOG is filtered by HAVING clause in SQL)
+    assert len(result) == 1
+    assert result[0]["asset_id"] == "AAPL"
+    assert result[0]["quantity"] == 100
+
+
+@patch('dao.transactions_dao.get_db_connection')
+def test_get_asset_holding_positive_quantity(mock_get_db):
+    """Test getting holding for a specific asset."""
+    dao, _, _ = make_mocked_dao(mock_get_db, [(50,)])
+
+    result = dao.get_asset_holding(1, "AAPL")
+
+    assert result == 50
+
+
+@patch('dao.transactions_dao.get_db_connection')
+def test_get_asset_holding_zero_quantity(mock_get_db):
+    """Test getting holding when asset not owned."""
+    dao, _, _ = make_mocked_dao(mock_get_db, [(None,)])
+
+    result = dao.get_asset_holding(1, "UNKNOWN")
+
+    assert result == 0
+
+
+@patch('dao.transactions_dao.get_db_connection')
+def test_get_asset_holding_null_result(mock_get_db):
+    """Test handling of null database result."""
+    dao, _, _ = make_mocked_dao(mock_get_db, [])
+
+    result = dao.get_asset_holding(999, "NONEXISTENT")
+
+    assert result == 0

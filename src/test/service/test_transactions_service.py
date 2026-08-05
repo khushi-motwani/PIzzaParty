@@ -92,6 +92,7 @@ class TestTransactionsService:
         service.portfolios_dao.get_by_id = MagicMock(return_value=mock_portfolio)
         service.assets_dao.get_by_id = MagicMock(return_value=mock_asset)
         service.transactions_dao.create = MagicMock(return_value=1)
+        service.transactions_dao.get_asset_holding = MagicMock(return_value=100)
         service.portfolios_dao.update_balance = MagicMock(return_value=True)
 
         service.create(1, "PIZZA", "SELL", 10, 15.00, "2024-01-15", 150.00, 1000)
@@ -107,6 +108,7 @@ class TestTransactionsService:
         """Test that database error during insert raises ValidationException."""
         service.portfolios_dao.get_by_id = MagicMock(return_value=mock_portfolio)
         service.assets_dao.get_by_id = MagicMock(return_value=mock_asset)
+        service.transactions_dao.get_asset_holding = MagicMock(return_value=100)
         service.transactions_dao.create = MagicMock(side_effect=Exception("Database error"))
 
         with pytest.raises(ValidationException):
@@ -117,6 +119,7 @@ class TestTransactionsService:
         """Test that database error during balance update raises ValidationException."""
         service.portfolios_dao.get_by_id = MagicMock(return_value=mock_portfolio)
         service.assets_dao.get_by_id = MagicMock(return_value=mock_asset)
+        service.transactions_dao.get_asset_holding = MagicMock(return_value=100)
         service.transactions_dao.create = MagicMock(return_value=1)
         service.portfolios_dao.update_balance = MagicMock(side_effect=Exception("Database error"))
 
@@ -128,6 +131,7 @@ class TestTransactionsService:
         """Test transaction with decimal quantity raises InvalidQuantityException."""
         service.portfolios_dao.get_by_id = MagicMock(return_value=mock_portfolio)
         service.assets_dao.get_by_id = MagicMock(return_value=mock_asset)
+        service.transactions_dao.get_asset_holding = MagicMock(return_value=100)
         with pytest.raises(InvalidQuantityException):
             service.create(1, "PIZZA", "SELL", Decimal(1.5), 100, "2024-01-15", 150.00, 1000)
 
@@ -137,6 +141,7 @@ class TestTransactionsService:
         service.portfolios_dao.get_by_id = MagicMock(return_value=mock_portfolio)
         service.assets_dao.get_by_id = MagicMock(return_value=mock_asset)
         service.transactions_dao.create = MagicMock(return_value=1)
+        service.transactions_dao.get_asset_holding = MagicMock(return_value=100)
         service.portfolios_dao.update_balance = MagicMock(return_value=True)
 
         transaction_id = service.create(1, "PIZZA", "SELL", 10, 15.00, "2024-01-15", 150.00, 1000)
@@ -293,6 +298,7 @@ class TestTransactionsService:
         """Test SELL transaction with zero quantity."""
         service.portfolios_dao.get_by_id = MagicMock(return_value=mock_portfolio)
         service.assets_dao.get_by_id = MagicMock(return_value=mock_asset)
+        service.transactions_dao.get_asset_holding = MagicMock(return_value=100)
         with pytest.raises(InvalidQuantityException):
             service._create_sell_transaction(1, "PIZZA", 0, 100)
 
@@ -300,6 +306,7 @@ class TestTransactionsService:
         """Test SELL transaction with negative quantity."""
         service.portfolios_dao.get_by_id = MagicMock(return_value=mock_portfolio)
         service.assets_dao.get_by_id = MagicMock(return_value=mock_asset)
+        service.transactions_dao.get_asset_holding = MagicMock(return_value=100)
         with pytest.raises(InvalidQuantityException):
             service._create_sell_transaction(1, "PIZZA", -5, 100)
 
@@ -307,6 +314,7 @@ class TestTransactionsService:
         """Test SELL transaction with zero price."""
         service.portfolios_dao.get_by_id = MagicMock(return_value=mock_portfolio)
         service.assets_dao.get_by_id = MagicMock(return_value=mock_asset)
+        service.transactions_dao.get_asset_holding = MagicMock(return_value=100)
         with pytest.raises(InvalidPriceException):
             service._create_sell_transaction(1, "PIZZA", 10, 0)
 
@@ -314,6 +322,7 @@ class TestTransactionsService:
         """Test SELL transaction with negative price."""
         service.portfolios_dao.get_by_id = MagicMock(return_value=mock_portfolio)
         service.assets_dao.get_by_id = MagicMock(return_value=mock_asset)
+        service.transactions_dao.get_asset_holding = MagicMock(return_value=100)
         with pytest.raises(InvalidPriceException):
             service._create_sell_transaction(1, "PIZZA", 10, -100)
 
@@ -328,6 +337,7 @@ class TestTransactionsService:
         """Test successful SELL transaction."""
         service.portfolios_dao.get_by_id = MagicMock(return_value=mock_portfolio)
         service.assets_dao.get_by_id = MagicMock(return_value=mock_asset)
+        service.transactions_dao.get_asset_holding = MagicMock(return_value=100)
         total, new_balance = service._create_sell_transaction(1, "PIZZA", 10, 15.00)
         assert total == Decimal("150.00")
         assert new_balance == Decimal("1150.00")
@@ -608,3 +618,116 @@ class TestTransactionsService:
         service.portfolios_dao.get_by_id = MagicMock(side_effect=Exception("Not found"))
         with pytest.raises(Exception):
             service.delete_transactions_by_portfolio(999)
+
+    # Tests for inventory/holdings functionality
+    def test_sell_transaction_with_sufficient_inventory(self, service, mock_portfolio, mock_asset):
+        """Test SELL transaction succeeds when sufficient inventory exists."""
+        from exception.validation_exceptions import InsufficientAssetQuantityException
+        service.portfolios_dao.get_by_id = MagicMock(return_value=mock_portfolio)
+        service.assets_dao.get_by_id = MagicMock(return_value=mock_asset)
+        service.transactions_dao.get_asset_holding = MagicMock(return_value=100)
+
+        total, new_balance = service._create_sell_transaction(1, "PIZZA", 50, 15.00)
+
+        assert total == Decimal("750.00")
+        assert new_balance == Decimal("1750.00")
+        service.transactions_dao.get_asset_holding.assert_called_once_with(1, "PIZZA")
+
+    def test_sell_transaction_with_exact_inventory(self, service, mock_portfolio, mock_asset):
+        """Test SELL transaction succeeds when selling exact quantity owned."""
+        service.portfolios_dao.get_by_id = MagicMock(return_value=mock_portfolio)
+        service.assets_dao.get_by_id = MagicMock(return_value=mock_asset)
+        service.transactions_dao.get_asset_holding = MagicMock(return_value=50)
+
+        total, new_balance = service._create_sell_transaction(1, "PIZZA", 50, 15.00)
+
+        assert total == Decimal("750.00")
+        assert new_balance == Decimal("1750.00")
+
+    def test_sell_transaction_insufficient_inventory(self, service, mock_portfolio, mock_asset):
+        """Test SELL transaction fails when insufficient inventory."""
+        from exception.validation_exceptions import InsufficientAssetQuantityException
+        service.portfolios_dao.get_by_id = MagicMock(return_value=mock_portfolio)
+        service.assets_dao.get_by_id = MagicMock(return_value=mock_asset)
+        service.transactions_dao.get_asset_holding = MagicMock(return_value=30)
+
+        with pytest.raises(InsufficientAssetQuantityException):
+            service._create_sell_transaction(1, "PIZZA", 50, 15.00)
+
+    def test_sell_transaction_zero_inventory(self, service, mock_portfolio, mock_asset):
+        """Test SELL transaction fails when no inventory."""
+        from exception.validation_exceptions import InsufficientAssetQuantityException
+        service.portfolios_dao.get_by_id = MagicMock(return_value=mock_portfolio)
+        service.assets_dao.get_by_id = MagicMock(return_value=mock_asset)
+        service.transactions_dao.get_asset_holding = MagicMock(return_value=0)
+
+        with pytest.raises(InsufficientAssetQuantityException):
+            service._create_sell_transaction(1, "PIZZA", 10, 15.00)
+
+    def test_get_portfolio_holdings_valid(self, service):
+        """Test getting holdings for valid portfolio."""
+        service.portfolios_dao.get_by_id = MagicMock(return_value=PortfoliosDTO("Test", 1000, 1))
+        holdings = [
+            {"asset_id": "AAPL", "quantity": 120},
+            {"asset_id": "MSFT", "quantity": 70}
+        ]
+        service.transactions_dao.get_portfolio_holdings = MagicMock(return_value=holdings)
+
+        result = service.get_portfolio_holdings(1)
+
+        assert result == holdings
+        service.portfolios_dao.get_by_id.assert_called_once_with(1)
+        service.transactions_dao.get_portfolio_holdings.assert_called_once_with(1)
+
+    def test_get_portfolio_holdings_empty(self, service):
+        """Test getting holdings for portfolio with no assets."""
+        service.portfolios_dao.get_by_id = MagicMock(return_value=PortfoliosDTO("Test", 1000, 1))
+        service.transactions_dao.get_portfolio_holdings = MagicMock(return_value=[])
+
+        result = service.get_portfolio_holdings(1)
+
+        assert result == []
+
+    def test_get_portfolio_holdings_invalid_portfolio(self, service):
+        """Test getting holdings for non-existent portfolio."""
+        service.portfolios_dao.get_by_id = MagicMock(side_effect=Exception("Not found"))
+
+        with pytest.raises(Exception):
+            service.get_portfolio_holdings(999)
+
+    def test_get_asset_holding_valid(self, service):
+        """Test getting holding for valid asset and portfolio."""
+        service.portfolios_dao.get_by_id = MagicMock(return_value=PortfoliosDTO("Test", 1000, 1))
+        service.assets_dao.get_by_id = MagicMock(return_value=AssetsDTO("AAPL", "Apple", "EQUITY", "Tech", "Electronics", False))
+        service.transactions_dao.get_asset_holding = MagicMock(return_value=100)
+
+        result = service.get_asset_holding(1, "AAPL")
+
+        assert result == {"asset_id": "AAPL", "quantity": 100}
+        service.portfolios_dao.get_by_id.assert_called_once_with(1)
+        service.assets_dao.get_by_id.assert_called_once_with("AAPL")
+
+    def test_get_asset_holding_zero_quantity(self, service):
+        """Test getting holding when asset not owned."""
+        service.portfolios_dao.get_by_id = MagicMock(return_value=PortfoliosDTO("Test", 1000, 1))
+        service.assets_dao.get_by_id = MagicMock(return_value=AssetsDTO("AAPL", "Apple", "EQUITY", "Tech", "Electronics", False))
+        service.transactions_dao.get_asset_holding = MagicMock(return_value=0)
+
+        result = service.get_asset_holding(1, "AAPL")
+
+        assert result == {"asset_id": "AAPL", "quantity": 0}
+
+    def test_get_asset_holding_invalid_portfolio(self, service):
+        """Test getting holding for non-existent portfolio."""
+        service.portfolios_dao.get_by_id = MagicMock(side_effect=Exception("Not found"))
+
+        with pytest.raises(Exception):
+            service.get_asset_holding(999, "AAPL")
+
+    def test_get_asset_holding_invalid_asset(self, service):
+        """Test getting holding for non-existent asset."""
+        service.portfolios_dao.get_by_id = MagicMock(return_value=PortfoliosDTO("Test", 1000, 1))
+        service.assets_dao.get_by_id = MagicMock(side_effect=Exception("Not found"))
+
+        with pytest.raises(AssetNotFoundException):
+            service.get_asset_holding(1, "INVALID")

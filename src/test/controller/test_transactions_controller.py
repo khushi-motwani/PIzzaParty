@@ -11,7 +11,8 @@ from exception.validation_exceptions import (
     InvalidTransactionTypeException,
     PortfolioNotFoundException,
     AssetNotFoundException,
-    ValidationException
+    ValidationException,
+    InsufficientAssetQuantityException
 )
 
 
@@ -377,3 +378,132 @@ class TestCreateTransactionValidations:
         assert response.status_code == 201
         assert response.json["transaction_id"] == 4
         mock_service.create_transaction.assert_called_once_with(1, "PIZZA001", "BUY", 5, 10.00)
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_create_sell_transaction_insufficient_inventory(self, mock_service, client):
+        """Test SELL transaction fails with insufficient inventory."""
+        mock_service.create_transaction.side_effect = InsufficientAssetQuantityException("PIZZA", 50, 30)
+
+        response = client.post('/transactions/create',
+                              data=json.dumps({
+                                  "portfolio_id": 1,
+                                  "asset_id": "PIZZA",
+                                  "transaction_type": "SELL",
+                                  "quantity": 50,
+                                  "price": 10.00
+                              }),
+                              content_type='application/json')
+
+        assert response.status_code == 400
+        assert "Insufficient PIZZA" in response.json["error"]
+        assert "50" in response.json["error"]
+        assert "30" in response.json["error"]
+
+
+# Tests for Holdings Endpoints
+class TestHoldingsEndpoints:
+    """Test portfolio holdings endpoints."""
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_get_portfolio_holdings_success(self, mock_service, client):
+        """Test GET /transactions/portfolio/{id}/holdings with assets."""
+        holdings = [
+            {"asset_id": "AAPL", "quantity": 120},
+            {"asset_id": "MSFT", "quantity": 70}
+        ]
+        mock_service.get_portfolio_holdings.return_value = holdings
+
+        response = client.get('/transactions/portfolio/1/holdings')
+
+        assert response.status_code == 200
+        assert len(response.json) == 2
+        assert response.json[0]["asset_id"] == "AAPL"
+        assert response.json[0]["quantity"] == 120
+        assert response.json[1]["asset_id"] == "MSFT"
+        assert response.json[1]["quantity"] == 70
+        mock_service.get_portfolio_holdings.assert_called_once_with(1)
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_get_portfolio_holdings_empty(self, mock_service, client):
+        """Test GET /transactions/portfolio/{id}/holdings with no assets."""
+        mock_service.get_portfolio_holdings.return_value = []
+
+        response = client.get('/transactions/portfolio/1/holdings')
+
+        assert response.status_code == 200
+        assert response.json == []
+        mock_service.get_portfolio_holdings.assert_called_once_with(1)
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_get_portfolio_holdings_portfolio_not_found(self, mock_service, client):
+        """Test GET /transactions/portfolio/{id}/holdings with invalid portfolio."""
+        mock_service.get_portfolio_holdings.side_effect = PortfolioNotFoundException(999)
+
+        response = client.get('/transactions/portfolio/999/holdings')
+
+        assert response.status_code == 404
+        assert "Portfolio with ID 999 not found" in response.json["error"]
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_get_portfolio_holdings_unexpected_error(self, mock_service, client):
+        """Test GET /transactions/portfolio/{id}/holdings with unexpected error."""
+        mock_service.get_portfolio_holdings.side_effect = RuntimeError("Database error")
+
+        response = client.get('/transactions/portfolio/1/holdings')
+
+        assert response.status_code == 500
+        assert "Internal server error" in response.json["error"]
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_get_asset_holding_success(self, mock_service, client):
+        """Test GET /transactions/portfolio/{portfolio_id}/holdings/{asset_id} success."""
+        holding = {"asset_id": "AAPL", "quantity": 100}
+        mock_service.get_asset_holding.return_value = holding
+
+        response = client.get('/transactions/portfolio/1/holdings/AAPL')
+
+        assert response.status_code == 200
+        assert response.json["asset_id"] == "AAPL"
+        assert response.json["quantity"] == 100
+        mock_service.get_asset_holding.assert_called_once_with(1, "AAPL")
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_get_asset_holding_zero_quantity(self, mock_service, client):
+        """Test GET /transactions/portfolio/{id}/holdings/{asset_id} with zero quantity."""
+        holding = {"asset_id": "UNKNOWN", "quantity": 0}
+        mock_service.get_asset_holding.return_value = holding
+
+        response = client.get('/transactions/portfolio/1/holdings/UNKNOWN')
+
+        assert response.status_code == 200
+        assert response.json["quantity"] == 0
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_get_asset_holding_portfolio_not_found(self, mock_service, client):
+        """Test GET /transactions/portfolio/{id}/holdings/{asset_id} with invalid portfolio."""
+        mock_service.get_asset_holding.side_effect = PortfolioNotFoundException(999)
+
+        response = client.get('/transactions/portfolio/999/holdings/AAPL')
+
+        assert response.status_code == 404
+        assert "Portfolio with ID 999 not found" in response.json["error"]
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_get_asset_holding_asset_not_found(self, mock_service, client):
+        """Test GET /transactions/portfolio/{id}/holdings/{asset_id} with invalid asset."""
+        mock_service.get_asset_holding.side_effect = AssetNotFoundException("INVALID")
+
+        response = client.get('/transactions/portfolio/1/holdings/INVALID')
+
+        assert response.status_code == 404
+        assert "Asset with ID 'INVALID' not found" in response.json["error"]
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_get_asset_holding_unexpected_error(self, mock_service, client):
+        """Test GET /transactions/portfolio/{id}/holdings/{asset_id} with unexpected error."""
+        mock_service.get_asset_holding.side_effect = RuntimeError("Database error")
+
+        response = client.get('/transactions/portfolio/1/holdings/AAPL')
+
+        assert response.status_code == 500
+        assert "Internal server error" in response.json["error"]

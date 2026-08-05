@@ -1,6 +1,11 @@
 import logging
 from service.transactions_service import TransactionsService
-from exception.validation_exceptions import ValidationException, PortfolioNotFoundException, AssetNotFoundException
+from exception.validation_exceptions import (
+    ValidationException,
+    PortfolioNotFoundException,
+    AssetNotFoundException,
+    InsufficientAssetQuantityException
+)
 from flask import Blueprint, jsonify, request
 
 logger = logging.getLogger('pizzaparty')
@@ -54,6 +59,33 @@ def get_transaction_summary(portfolio_id):
     summary = transactions_service.get_transaction_summary_by_portfolio(portfolio_id)
     return jsonify(summary)
 
+@transactions_bp.route('/portfolio/<int:portfolio_id>/holdings', methods=['GET'])
+def get_portfolio_holdings(portfolio_id):
+    try:
+        holdings = transactions_service.get_portfolio_holdings(portfolio_id)
+        return jsonify(holdings), 200
+    except PortfolioNotFoundException as e:
+        logger.critical(f"Portfolio not found: {str(e)}")
+        return jsonify({"error": str(e)}), 404
+    except Exception as e:
+        logger.critical(f"Error retrieving holdings: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+@transactions_bp.route('/portfolio/<int:portfolio_id>/holdings/<asset_id>', methods=['GET'])
+def get_asset_holding(portfolio_id, asset_id):
+    try:
+        holding = transactions_service.get_asset_holding(portfolio_id, asset_id)
+        return jsonify(holding), 200
+    except PortfolioNotFoundException as e:
+        logger.critical(f"Portfolio not found: {str(e)}")
+        return jsonify({"error": str(e)}), 404
+    except AssetNotFoundException as e:
+        logger.critical(f"Asset not found: {str(e)}")
+        return jsonify({"error": str(e)}), 404
+    except Exception as e:
+        logger.critical(f"Error retrieving asset holding: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
 @transactions_bp.route('/create', methods=['POST'])
 def create_transaction():
     try:
@@ -89,6 +121,10 @@ def create_transaction():
     except AssetNotFoundException as e:
         logger.critical(f"Asset not found error: {str(e)}")
         return jsonify({"error": str(e)}), 404
+
+    except InsufficientAssetQuantityException as e:
+        logger.warning(f"Insufficient asset quantity error: {str(e)}")
+        return jsonify({"error": str(e)}), 400
 
     except ValidationException as e:
         logger.critical(f"Validation error: {str(e)}")

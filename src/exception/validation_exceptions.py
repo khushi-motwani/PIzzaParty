@@ -111,3 +111,13 @@ class InvalidDateRange(ValidationException):
         if start_date > end_date:
             message = "Invalide date range: Initial date {start_date} is after final date {end_date}"
         super().__init__(message)
+
+
+class InsufficientAssetQuantityException(ValidationException):
+    """Raised when trying to sell more of an asset than owned."""
+    def __init__(self, asset_id=None, needed=None, available=None):
+        if asset_id is None:
+            message = "Insufficient asset quantity for this transaction."
+        else:
+            message = f"Insufficient {asset_id}! You need {needed} shares but only have {available} in your portfolio."
+        super().__init__(message)
