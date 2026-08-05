@@ -447,10 +447,10 @@ class TestTransactionsService:
     def test_get_transactions_by_portfolio(self, service):
         """Test getting transactions by portfolio."""
         transactions = [TransactionsDTO(1, 1, "PIZZA", "BUY", 10, 150.00, "2024-01-15", 1500.00, 1500.00)]
-        service.transactions_dao.get_transaction_by_portfolio = MagicMock(return_value=transactions)
+        service.transactions_dao.get_transactions_by_portfolio = MagicMock(return_value=transactions)
         result = service.get_transactions_by_portfolio(1)
         assert result == transactions
-        service.transactions_dao.get_transaction_by_portfolio.assert_called_once_with(1)
+        service.transactions_dao.get_transactions_by_portfolio.assert_called_once_with(1)
 
     def test_get_transactions_by_asset(self, service):
         """Test getting transactions by asset."""
