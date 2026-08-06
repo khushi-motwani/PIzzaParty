@@ -13,6 +13,9 @@ class TransactionsDao:
             self.connection = self.connection_factory()
         return self.connection
 
+    def _reset_connection(self):
+        self.connection = None
+
     def count(self):
         dbcursor = self._get_connection().cursor()
         dbcursor.execute("SELECT count(*) as Total FROM Transactions")
@@ -26,17 +29,18 @@ class TransactionsDao:
         dbcursor = self._get_connection().cursor()
         dbcursor.execute("SELECT * FROM Transactions")
         result = dbcursor.fetchall()
+        dbcursor.close()
 
         for row in result:
             transaction = TransactionsDTO(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8])
             self.transactions.append(transaction)
-        dbcursor.close()
         return self.transactions
 
 
     def create(self, portfolio_id, asset_id, transaction_type, transaction_quantity,
                transaction_price, transaction_date, transaction_total, balance_after_transaction):
-        dbcursor = self._get_connection().cursor()
+        connection = self._get_connection()
+        dbcursor = connection.cursor()
         dbcursor.execute(
             """INSERT INTO Transactions
                (portfolio_id, asset_id, transaction_type, transaction_quantity,
@@ -45,7 +49,9 @@ class TransactionsDao:
             (portfolio_id, asset_id, transaction_type, transaction_quantity,
              transaction_price, transaction_date, transaction_total, balance_after_transaction)
         )
-        self._get_connection().commit()
+        connection.commit()
+        dbcursor.close()
+        self._reset_connection()
         return dbcursor.lastrowid
 
     def row_to_dto(self, row):
@@ -220,3 +226,36 @@ class TransactionsDao:
         connection.commit()
         dbcursor.close()
         return dbcursor.rowcount
+
+    def get_portfolio_holdings(self, portfolio_id):
+        dbcursor = self._get_connection().cursor()
+        dbcursor.execute(
+            """SELECT
+                asset_id,
+                SUM(CASE WHEN transaction_type = 'BUY' THEN transaction_quantity ELSE 0 END) -
+                SUM(CASE WHEN transaction_type = 'SELL' THEN transaction_quantity ELSE 0 END) as quantity_held
+            FROM Transactions
+            WHERE portfolio_id = %s AND asset_id IS NOT NULL
+            GROUP BY asset_id
+            HAVING quantity_held > 0
+            ORDER BY asset_id""",
+            (portfolio_id,)
+        )
+        result = dbcursor.fetchall()
+        dbcursor.close()
+        return [{"asset_id": row[0], "quantity": row[1]} for row in result]
+
+    def get_asset_holding(self, portfolio_id, asset_id):
+        dbcursor = self._get_connection().cursor()
+        dbcursor.execute(
+            """SELECT
+                SUM(CASE WHEN transaction_type = 'BUY' THEN transaction_quantity ELSE 0 END) -
+                SUM(CASE WHEN transaction_type = 'SELL' THEN transaction_quantity ELSE 0 END) as quantity_held
+            FROM Transactions
+            WHERE portfolio_id = %s AND asset_id = %s""",
+            (portfolio_id, asset_id)
+        )
+        result = dbcursor.fetchall()
+        dbcursor.close()
+        quantity = result[0][0] if result and result[0][0] is not None else 0
+        return quantity

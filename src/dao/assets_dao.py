@@ -14,6 +14,9 @@ class AssetsDao:
             self.connection = self.connection_factory()
         return self.connection
 
+    def _reset_connection(self):
+        self.connection = None
+
     def count(self):
         dbcursor = self._get_connection().cursor()
         dbcursor.execute("SELECT count(*) as Total FROM Assets")

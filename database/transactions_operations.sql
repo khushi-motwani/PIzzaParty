@@ -61,6 +61,24 @@ FROM Transactions
 WHERE portfolio_id = ?
 GROUP BY transaction_type;
 
+-- def getPortfolioHoldings(portfolio_id)
+SELECT
+    asset_id,
+    SUM(CASE WHEN transaction_type = 'BUY' THEN transaction_quantity ELSE 0 END) -
+    SUM(CASE WHEN transaction_type = 'SELL' THEN transaction_quantity ELSE 0 END) as quantity_held
+FROM Transactions
+WHERE portfolio_id = ? AND asset_id IS NOT NULL
+GROUP BY asset_id
+HAVING quantity_held > 0
+ORDER BY asset_id;
+
+-- def getAssetHolding(portfolio_id, asset_id)
+SELECT
+    SUM(CASE WHEN transaction_type = 'BUY' THEN transaction_quantity ELSE 0 END) -
+    SUM(CASE WHEN transaction_type = 'SELL' THEN transaction_quantity ELSE 0 END) as quantity_held
+FROM Transactions
+WHERE portfolio_id = ? AND asset_id = ?;
+
 -- ==================== SETTER OPERATIONS ====================
 
 -- def insertTransaction(portfolio_id, asset_id, transaction_type, transaction_quantity, transaction_price, transaction_date, transaction_total, balance_after_transaction)

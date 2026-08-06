@@ -1,7 +1,14 @@
 import logging
 from service.transactions_service import TransactionsService
-from exception.validation_exceptions import ValidationException, PortfolioNotFoundException, AssetNotFoundException
+from exception.validation_exceptions import (
+    ValidationException,
+    PortfolioNotFoundException,
+    AssetNotFoundException,
+    InsufficientAssetQuantityException,
+    InsufficientFundsException
+)
 from flask import Blueprint, jsonify, request
+from flask_cors import cross_origin
 
 logger = logging.getLogger('pizzaparty')
 
@@ -54,6 +61,33 @@ def get_transaction_summary(portfolio_id):
     summary = transactions_service.get_transaction_summary_by_portfolio(portfolio_id)
     return jsonify(summary)
 
+@transactions_bp.route('/portfolio/<int:portfolio_id>/holdings', methods=['GET'])
+def get_portfolio_holdings(portfolio_id):
+    try:
+        holdings = transactions_service.get_portfolio_holdings(portfolio_id)
+        return jsonify(holdings), 200
+    except PortfolioNotFoundException as e:
+        logger.critical(f"Portfolio not found: {str(e)}")
+        return jsonify({"error": str(e)}), 404
+    except Exception as e:
+        logger.critical(f"Error retrieving holdings: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+@transactions_bp.route('/portfolio/<int:portfolio_id>/holdings/<asset_id>', methods=['GET'])
+def get_asset_holding(portfolio_id, asset_id):
+    try:
+        holding = transactions_service.get_asset_holding(portfolio_id, asset_id)
+        return jsonify(holding), 200
+    except PortfolioNotFoundException as e:
+        logger.critical(f"Portfolio not found: {str(e)}")
+        return jsonify({"error": str(e)}), 404
+    except AssetNotFoundException as e:
+        logger.critical(f"Asset not found: {str(e)}")
+        return jsonify({"error": str(e)}), 404
+    except Exception as e:
+        logger.critical(f"Error retrieving asset holding: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
 @transactions_bp.route('/create', methods=['POST'])
 def create_transaction():
     try:
@@ -90,12 +124,186 @@ def create_transaction():
         logger.critical(f"Asset not found error: {str(e)}")
         return jsonify({"error": str(e)}), 404
 
+    except InsufficientAssetQuantityException as e:
+        logger.warning(f"Insufficient asset quantity error: {str(e)}")
+        return jsonify({"error": str(e)}), 400
+
     except ValidationException as e:
         logger.critical(f"Validation error: {str(e)}")
         return jsonify({"error": str(e)}), 400
 
     except Exception as e:
         logger.critical(f"Internal server error during transaction creation: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+@transactions_bp.route('/create_buy', methods=['POST'])
+@cross_origin()
+def create_buy_transaction():
+    try:
+        data = request.get_json()
+
+        required_fields = ['portfolio_id', 'asset_id', 'quantity', 'price']
+        if not all(field in data for field in required_fields):
+            logger.warning(f"Create BUY transaction request missing required fields: {required_fields}")
+            return jsonify({
+                "error": "Missing required fields",
+                "required": required_fields
+            }), 400
+
+        portfolio_id = data['portfolio_id']
+        asset_id = data['asset_id']
+        quantity = data['quantity']
+        price = data['price']
+
+        transaction_id = transactions_service.create(
+            portfolio_id, asset_id, 'BUY', quantity, price, None, None, None
+        )
+
+        return jsonify({
+            "message": "BUY transaction created successfully",
+            "transaction_id": transaction_id
+        }), 201
+
+    except PortfolioNotFoundException as e:
+        logger.critical(f"Portfolio not found error: {str(e)}")
+        return jsonify({"error": "Portfolio not found"}), 404
+
+    except AssetNotFoundException as e:
+        logger.critical(f"Asset not found error: {str(e)}")
+        return jsonify({"error": "Asset not found"}), 404
+
+
+    except ValidationException as e:
+        logger.critical(f"Validation error: {str(e)}")
+        return jsonify({"error": str(e)}), 400
+
+    except Exception as e:
+        logger.critical(f"Internal server error during BUY transaction creation: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+@transactions_bp.route('/create_sell', methods=['POST'])
+@cross_origin()
+def create_sell_transaction():
+    try:
+        data = request.get_json()
+
+        required_fields = ['portfolio_id', 'asset_id', 'quantity', 'price']
+        if not all(field in data for field in required_fields):
+            logger.warning(f"Create SELL transaction request missing required fields: {required_fields}")
+            return jsonify({
+                "error": "Missing required fields",
+                "required": required_fields
+            }), 400
+
+        portfolio_id = data['portfolio_id']
+        asset_id = data['asset_id']
+        quantity = data['quantity']
+        price = data['price']
+
+        transaction_id = transactions_service.create(
+            portfolio_id, asset_id, 'SELL', quantity, price, None, None, None
+        )
+
+        return jsonify({
+            "message": "SELL transaction created successfully",
+            "transaction_id": transaction_id
+        }), 201
+
+    except PortfolioNotFoundException as e:
+        logger.critical(f"Portfolio not found error: {str(e)}")
+        return jsonify({"error": str(e)}), 404
+
+    except AssetNotFoundException as e:
+        logger.critical(f"Asset not found error: {str(e)}")
+        return jsonify({"error": str(e)}), 404
+
+
+    except ValidationException as e:
+        logger.critical(f"Validation error: {str(e)}")
+        return jsonify({"error": str(e)}), 400
+
+    except Exception as e:
+        logger.critical(f"Internal server error during SELL transaction creation: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+@transactions_bp.route('/create_deposit', methods=['POST'])
+@cross_origin()
+def create_deposit_transaction():
+    try:
+        data = request.get_json()
+
+        required_fields = ['portfolio_id', 'amount']
+        if not all(field in data for field in required_fields):
+            logger.warning(f"Create DEPOSIT transaction request missing required fields: {required_fields}")
+            return jsonify({
+                "error": "Missing required fields",
+                "required": required_fields
+            }), 400
+
+        portfolio_id = int(data['portfolio_id'])
+        amount = float(data['amount'])
+
+        transaction_id = transactions_service.create(
+            portfolio_id, None, 'DEPOSIT', None, None, None, amount, None
+        )
+
+        return jsonify({
+            "message": "DEPOSIT transaction created successfully",
+            "transaction_id": transaction_id
+        }), 201
+
+    except PortfolioNotFoundException as e:
+        logger.critical(f"Portfolio not found error: {str(e)}")
+        return jsonify({"error": str(e)}), 404
+
+    except ValidationException as e:
+        logger.critical(f"Validation error: {str(e)}")
+        return jsonify({"error": str(e)}), 400
+
+    except Exception as e:
+        logger.critical(f"Internal server error during DEPOSIT transaction creation: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+@transactions_bp.route('/create_withdrawal', methods=['POST'])
+@cross_origin()
+def create_withdrawal_transaction():
+    try:
+        data = request.get_json()
+
+        required_fields = ['portfolio_id', 'amount']
+        if not all(field in data for field in required_fields):
+            logger.warning(f"Create WITHDRAWAL transaction request missing required fields: {required_fields}")
+            return jsonify({
+                "error": "Missing required fields",
+                "required": required_fields
+            }), 400
+
+        portfolio_id = int(data['portfolio_id'])
+        amount = float(data['amount'])
+
+        transaction_id = transactions_service.create(
+            portfolio_id, None, 'WITHDRAW', None, None, None, amount, None
+        )
+
+        return jsonify({
+            "message": "WITHDRAWAL transaction created successfully",
+            "transaction_id": transaction_id
+        }), 201
+
+    except PortfolioNotFoundException as e:
+        logger.critical(f"Portfolio not found error: {str(e)}")
+        return jsonify({"error": str(e)}), 404
+
+    except InsufficientFundsException as e:
+        logger.warning(f"Insufficient funds error: {str(e)}")
+        return jsonify({"error": str(e)}), 400
+
+    except ValidationException as e:
+        logger.critical(f"Validation error: {str(e)}")
+        return jsonify({"error": str(e)}), 400
+
+    except Exception as e:
+        logger.critical(f"Internal server error during WITHDRAWAL transaction creation: {str(e)}", exc_info=True)
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
 @transactions_bp.route('/<int:transaction_id>', methods=['PUT'])
