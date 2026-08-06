@@ -7,5 +7,6 @@ def get_db_connection():
         host="localhost",
         user="root",
         password="n3u3da!",
-        database="Portfolio"
+        database="Portfolio",
+        autocommit=True
     )
