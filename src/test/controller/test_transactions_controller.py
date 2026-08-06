@@ -507,3 +507,364 @@ class TestHoldingsEndpoints:
 
         assert response.status_code == 500
         assert "Internal server error" in response.json["error"]
+
+
+# Tests for GET endpoints
+class TestGetTransactionEndpoints:
+    """Test transaction GET endpoints."""
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_get_transaction_by_id(self, mock_service, client):
+        """Test GET /transactions/{id}."""
+        transaction = TransactionsDTO(1, 1, "PIZZA", "BUY", 10, 150.00, "2024-01-15", 1500.00, 1500.00)
+        mock_service.get_transaction_by_id.return_value = transaction
+
+        response = client.get('/transactions/1')
+
+        assert response.status_code == 200
+        assert response.json["transaction_id"] == 1
+        assert response.json["transaction_type"] == "BUY"
+        mock_service.get_transaction_by_id.assert_called_once_with(1)
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_get_transactions_by_portfolio(self, mock_service, client):
+        """Test GET /transactions/portfolio/{id}/all."""
+        transaction1 = TransactionsDTO(1, 1, "PIZZA", "BUY", 10, 150.00, "2024-01-15", 1500.00, 1500.00)
+        transaction2 = TransactionsDTO(1, 2, "PIZZA", "SELL", 5, 200.00, "2024-01-20", 1000.00, 2500.00)
+        mock_service.get_transactions_by_portfolio.return_value = [transaction1, transaction2]
+
+        response = client.get('/transactions/portfolio/1/all')
+
+        assert response.status_code == 200
+        assert len(response.json) == 2
+        mock_service.get_transactions_by_portfolio.assert_called_once_with(1)
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_get_portfolio_transaction_count(self, mock_service, client):
+        """Test GET /transactions/portfolio/{id}/count."""
+        mock_service.get_transaction_count_by_portfolio.return_value = 5
+
+        response = client.get('/transactions/portfolio/1/count')
+
+        assert response.status_code == 200
+        assert response.json["count"] == 5
+        mock_service.get_transaction_count_by_portfolio.assert_called_once_with(1)
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_get_portfolio_transaction_value(self, mock_service, client):
+        """Test GET /transactions/portfolio/{id}/value."""
+        mock_service.get_total_transaction_value_by_portfolio.return_value = 15000.00
+
+        response = client.get('/transactions/portfolio/1/value')
+
+        assert response.status_code == 200
+        assert response.json["total_value"] == 15000.00
+        mock_service.get_total_transaction_value_by_portfolio.assert_called_once_with(1)
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_get_transactions_by_asset(self, mock_service, client):
+        """Test GET /transactions/portfolio/{portfolio_id}/asset/{asset_id}/all."""
+        transaction1 = TransactionsDTO(1, 1, "PIZZA", "BUY", 10, 150.00, "2024-01-15", 1500.00, 1500.00)
+        mock_service.get_transactions_by_asset.return_value = [transaction1]
+
+        response = client.get('/transactions/portfolio/1/asset/PIZZA/all')
+
+        assert response.status_code == 200
+        assert len(response.json) == 1
+        assert response.json[0]["asset_id"] == "PIZZA"
+        mock_service.get_transactions_by_asset.assert_called_once_with(1, "PIZZA")
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_get_transactions_by_type(self, mock_service, client):
+        """Test GET /transactions/type/{type}/all."""
+        transaction1 = TransactionsDTO(1, 1, "PIZZA", "BUY", 10, 150.00, "2024-01-15", 1500.00, 1500.00)
+        transaction2 = TransactionsDTO(1, 2, "COKE", "BUY", 20, 50.00, "2024-01-16", 1000.00, 2500.00)
+        mock_service.get_transactions_by_type.return_value = [transaction1, transaction2]
+
+        response = client.get('/transactions/type/BUY/all')
+
+        assert response.status_code == 200
+        assert len(response.json) == 2
+        mock_service.get_transactions_by_type.assert_called_once_with("BUY")
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_get_transaction_summary(self, mock_service, client):
+        """Test GET /transactions/portfolio/{id}/summary."""
+        summary = {"total_spent": 5000.00, "total_earned": 3000.00, "net": -2000.00}
+        mock_service.get_transaction_summary_by_portfolio.return_value = summary
+
+        response = client.get('/transactions/portfolio/1/summary')
+
+        assert response.status_code == 200
+        assert response.json == summary
+        mock_service.get_transaction_summary_by_portfolio.assert_called_once_with(1)
+
+
+# Tests for BUY/SELL/DEPOSIT/WITHDRAWAL endpoints
+class TestSpecializedTransactionEndpoints:
+    """Test specialized transaction creation endpoints."""
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_create_buy_transaction_missing_fields(self, mock_service, client):
+        """Test POST /transactions/create_buy with missing fields."""
+        response = client.post('/transactions/create_buy',
+                              data=json.dumps({"portfolio_id": 1}),
+                              content_type='application/json')
+
+        assert response.status_code == 400
+        assert "Missing required fields" in response.json["error"]
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_create_buy_transaction_success(self, mock_service, client):
+        """Test POST /transactions/create_buy success."""
+        mock_service.create.return_value = 1
+
+        response = client.post('/transactions/create_buy',
+                              data=json.dumps({
+                                  "portfolio_id": 1,
+                                  "asset_id": "PIZZA",
+                                  "quantity": 10,
+                                  "price": 150.00
+                              }),
+                              content_type='application/json')
+
+        assert response.status_code == 201
+        assert response.json["message"] == "BUY transaction created successfully"
+        assert response.json["transaction_id"] == 1
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_create_buy_transaction_portfolio_not_found(self, mock_service, client):
+        """Test POST /transactions/create_buy with invalid portfolio."""
+        mock_service.create.side_effect = PortfolioNotFoundException(999)
+
+        response = client.post('/transactions/create_buy',
+                              data=json.dumps({
+                                  "portfolio_id": 999,
+                                  "asset_id": "PIZZA",
+                                  "quantity": 10,
+                                  "price": 150.00
+                              }),
+                              content_type='application/json')
+
+        assert response.status_code == 404
+        assert "Portfolio not found" in response.json["error"]
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_create_buy_transaction_asset_not_found(self, mock_service, client):
+        """Test POST /transactions/create_buy with invalid asset."""
+        mock_service.create.side_effect = AssetNotFoundException("INVALID")
+
+        response = client.post('/transactions/create_buy',
+                              data=json.dumps({
+                                  "portfolio_id": 1,
+                                  "asset_id": "INVALID",
+                                  "quantity": 10,
+                                  "price": 150.00
+                              }),
+                              content_type='application/json')
+
+        assert response.status_code == 404
+        assert "Asset not found" in response.json["error"]
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_create_sell_transaction_missing_fields(self, mock_service, client):
+        """Test POST /transactions/create_sell with missing fields."""
+        response = client.post('/transactions/create_sell',
+                              data=json.dumps({"portfolio_id": 1}),
+                              content_type='application/json')
+
+        assert response.status_code == 400
+        assert "Missing required fields" in response.json["error"]
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_create_sell_transaction_success(self, mock_service, client):
+        """Test POST /transactions/create_sell success."""
+        mock_service.create.return_value = 2
+
+        response = client.post('/transactions/create_sell',
+                              data=json.dumps({
+                                  "portfolio_id": 1,
+                                  "asset_id": "PIZZA",
+                                  "quantity": 5,
+                                  "price": 200.00
+                              }),
+                              content_type='application/json')
+
+        assert response.status_code == 201
+        assert response.json["message"] == "SELL transaction created successfully"
+        assert response.json["transaction_id"] == 2
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_create_sell_transaction_insufficient_inventory(self, mock_service, client):
+        """Test POST /transactions/create_sell with insufficient inventory."""
+        mock_service.create.side_effect = InsufficientAssetQuantityException("PIZZA", 50, 30)
+
+        response = client.post('/transactions/create_sell',
+                              data=json.dumps({
+                                  "portfolio_id": 1,
+                                  "asset_id": "PIZZA",
+                                  "quantity": 50,
+                                  "price": 200.00
+                              }),
+                              content_type='application/json')
+
+        assert response.status_code == 400
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_create_deposit_transaction_missing_fields(self, mock_service, client):
+        """Test POST /transactions/create_deposit with missing fields."""
+        response = client.post('/transactions/create_deposit',
+                              data=json.dumps({"portfolio_id": 1}),
+                              content_type='application/json')
+
+        assert response.status_code == 400
+        assert "Missing required fields" in response.json["error"]
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_create_deposit_transaction_success(self, mock_service, client):
+        """Test POST /transactions/create_deposit success."""
+        mock_service.create.return_value = 3
+
+        response = client.post('/transactions/create_deposit',
+                              data=json.dumps({
+                                  "portfolio_id": 1,
+                                  "amount": 5000.00
+                              }),
+                              content_type='application/json')
+
+        assert response.status_code == 201
+        assert response.json["message"] == "DEPOSIT transaction created successfully"
+        assert response.json["transaction_id"] == 3
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_create_deposit_transaction_portfolio_not_found(self, mock_service, client):
+        """Test POST /transactions/create_deposit with invalid portfolio."""
+        mock_service.create.side_effect = PortfolioNotFoundException(999)
+
+        response = client.post('/transactions/create_deposit',
+                              data=json.dumps({
+                                  "portfolio_id": 999,
+                                  "amount": 5000.00
+                              }),
+                              content_type='application/json')
+
+        assert response.status_code == 404
+        assert "Portfolio" in response.json["error"] and "not found" in response.json["error"]
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_create_withdrawal_transaction_missing_fields(self, mock_service, client):
+        """Test POST /transactions/create_withdrawal with missing fields."""
+        response = client.post('/transactions/create_withdrawal',
+                              data=json.dumps({"portfolio_id": 1}),
+                              content_type='application/json')
+
+        assert response.status_code == 400
+        assert "Missing required fields" in response.json["error"]
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_create_withdrawal_transaction_success(self, mock_service, client):
+        """Test POST /transactions/create_withdrawal success."""
+        mock_service.create.return_value = 4
+
+        response = client.post('/transactions/create_withdrawal',
+                              data=json.dumps({
+                                  "portfolio_id": 1,
+                                  "amount": 1000.00
+                              }),
+                              content_type='application/json')
+
+        assert response.status_code == 201
+        assert response.json["message"] == "WITHDRAWAL transaction created successfully"
+        assert response.json["transaction_id"] == 4
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_create_withdrawal_transaction_insufficient_funds(self, mock_service, client):
+        """Test POST /transactions/create_withdrawal with insufficient funds."""
+        mock_service.create.side_effect = InsufficientFundsException(5000, 10000)
+
+        response = client.post('/transactions/create_withdrawal',
+                              data=json.dumps({
+                                  "portfolio_id": 1,
+                                  "amount": 10000.00
+                              }),
+                              content_type='application/json')
+
+        assert response.status_code == 400
+
+
+# Tests for PUT and DELETE endpoints
+class TestUpdateDeleteTransactionEndpoints:
+    """Test transaction update and delete endpoints."""
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_update_transaction_success(self, mock_service, client):
+        """Test PUT /transactions/{id}."""
+        response = client.put('/transactions/1',
+                             data=json.dumps({
+                                 "transaction_type": "BUY",
+                                 "transaction_quantity": 15,
+                                 "transaction_price": 160.00,
+                                 "transaction_total": 2400.00,
+                                 "balance_after_transaction": 2400.00
+                             }),
+                             content_type='application/json')
+
+        assert response.status_code == 200
+        assert response.json["message"] == "Transaction updated successfully"
+        mock_service.update_transaction.assert_called_once()
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_update_transaction_validation_error(self, mock_service, client):
+        """Test PUT /transactions/{id} with validation error."""
+        mock_service.update_transaction.side_effect = ValidationException("Invalid data")
+
+        response = client.put('/transactions/1',
+                             data=json.dumps({
+                                 "transaction_type": "BUY",
+                                 "transaction_quantity": -5,
+                                 "transaction_price": 160.00,
+                                 "transaction_total": 2400.00,
+                                 "balance_after_transaction": 2400.00
+                             }),
+                             content_type='application/json')
+
+        assert response.status_code == 400
+        assert "Invalid data" in response.json["error"]
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_update_transaction_error(self, mock_service, client):
+        """Test PUT /transactions/{id} with error."""
+        mock_service.update_transaction.side_effect = RuntimeError("Database error")
+
+        response = client.put('/transactions/1',
+                             data=json.dumps({
+                                 "transaction_type": "BUY",
+                                 "transaction_quantity": 15,
+                                 "transaction_price": 160.00,
+                                 "transaction_total": 2400.00,
+                                 "balance_after_transaction": 2400.00
+                             }),
+                             content_type='application/json')
+
+        assert response.status_code == 500
+        assert "Internal server error" in response.json["error"]
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_delete_transaction_success(self, mock_service, client):
+        """Test DELETE /transactions/{id}."""
+        response = client.delete('/transactions/1')
+
+        assert response.status_code == 200
+        assert response.json["message"] == "Transaction deleted successfully"
+        assert response.json["transaction_id"] == 1
+        mock_service.delete_transaction.assert_called_once_with(1)
+
+    @patch('controller.transactions_controller.transactions_service')
+    def test_delete_transaction_error(self, mock_service, client):
+        """Test DELETE /transactions/{id} with error."""
+        mock_service.delete_transaction.side_effect = RuntimeError("Database error")
+
+        response = client.delete('/transactions/1')
+
+        assert response.status_code == 500
+        assert "Internal server error" in response.json["error"]
