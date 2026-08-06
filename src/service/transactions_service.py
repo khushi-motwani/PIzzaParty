@@ -52,8 +52,9 @@ class TransactionsService:
                 
     def _get_portfolio(self, portfolio_id):
             try:
+                portfolio = self.portfolios_dao.get_by_id(portfolio_id)
                 logger.debug(f"Portfolio retrieved: ID={portfolio_id}")
-                return self.portfolios_dao.get_by_id(portfolio_id)
+                return portfolio
             except Exception as e:
                 raise PortfolioNotFoundException(portfolio_id) from e
             
@@ -101,19 +102,21 @@ class TransactionsService:
         
         # timestamp
         transaction_date = datetime.now()
-        
+
         try:
+            balance_decimal = Decimal(str(balance_after_transaction)) if balance_after_transaction is not None else Decimal('0')
+
             transaction_id = self.transactions_dao.create(
-                portfolio_id = portfolio_id, 
-                asset_id = asset_id, 
+                portfolio_id = portfolio_id,
+                asset_id = asset_id,
                 transaction_type = transaction_type,
-                transaction_quantity = int(transaction_quantity), 
-                transaction_price = Decimal(str(transaction_price)), 
-                transaction_date=  transaction_date, 
-                transaction_total = transaction_total, 
-                balance_after_transaction = balance_after_transaction)
-            
-            self.portfolios_dao.update_balance(portfolio_id, balance_after_transaction)
+                transaction_quantity = int(transaction_quantity) if transaction_quantity is not None else 0,
+                transaction_price = Decimal(str(transaction_price)) if transaction_price is not None else Decimal('0'),
+                transaction_date=  transaction_date,
+                transaction_total = Decimal(str(transaction_total)) if transaction_total is not None else Decimal('0'),
+                balance_after_transaction = balance_decimal)
+
+            self.portfolios_dao.update_balance(portfolio_id, balance_decimal)
             
             logger.info(f"Transaction successfully created: ID={transaction_id}, type={transaction_type} at {transaction_date}")
         except Exception as e:

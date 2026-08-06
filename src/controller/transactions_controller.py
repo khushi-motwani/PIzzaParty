@@ -240,8 +240,8 @@ def create_deposit_transaction():
                 "required": required_fields
             }), 400
 
-        portfolio_id = data['portfolio_id']
-        amount = data['amount']
+        portfolio_id = int(data['portfolio_id'])
+        amount = float(data['amount'])
 
         transaction_id = transactions_service.create(
             portfolio_id, None, 'DEPOSIT', None, None, None, amount, None
@@ -278,8 +278,8 @@ def create_withdrawal_transaction():
                 "required": required_fields
             }), 400
 
-        portfolio_id = data['portfolio_id']
-        amount = data['amount']
+        portfolio_id = int(data['portfolio_id'])
+        amount = float(data['amount'])
 
         transaction_id = transactions_service.create(
             portfolio_id, None, 'WITHDRAW', None, None, None, amount, None

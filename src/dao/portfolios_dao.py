@@ -14,10 +14,14 @@ class PortfoliosDao:
             self.connection = self.connection_factory()
         return self.connection
 
+    def _reset_connection(self):
+        self.connection = None
+
     def get_all(self):
         dbcursor = self._get_connection().cursor()
         dbcursor.execute("SELECT * FROM Portfolios ORDER BY portfolio_id")
         result = dbcursor.fetchall()
+        dbcursor.close()
 
         self.portfolios = []
         for row in result:
@@ -33,6 +37,7 @@ class PortfoliosDao:
         dbcursor = self._get_connection().cursor()
         dbcursor.execute("SELECT * FROM Portfolios WHERE portfolio_id = %s", (portfolio_id,))
         result = dbcursor.fetchone()
+        dbcursor.close()
 
         if result is None:
             raise PortfolioNotFoundException(portfolio_id)
@@ -50,6 +55,7 @@ class PortfoliosDao:
             (portfolio_id,)
         )
         result = dbcursor.fetchone()
+        dbcursor.close()
 
         if result is None:
             raise PortfolioNotFoundException(portfolio_id)
@@ -64,6 +70,7 @@ class PortfoliosDao:
         dbcursor = self._get_connection().cursor()
         dbcursor.execute("SELECT SUM(portfolio_balance) as total_balance FROM Portfolios")
         result = dbcursor.fetchone()
+        dbcursor.close()
 
         return result[0] if result[0] is not None else 0
 
@@ -71,6 +78,7 @@ class PortfoliosDao:
         dbcursor = self._get_connection().cursor()
         dbcursor.execute("SELECT COUNT(*) as total_portfolios FROM Portfolios")
         result = dbcursor.fetchone()
+        dbcursor.close()
         self.total = result[0]
         return self.total
 
@@ -81,6 +89,7 @@ class PortfoliosDao:
         dbcursor = self._get_connection().cursor()
         dbcursor.execute("SELECT * FROM Portfolios ORDER BY portfolio_balance DESC")
         result = dbcursor.fetchall()
+        dbcursor.close()
 
         self.portfolios = []
         for row in result:
@@ -96,6 +105,7 @@ class PortfoliosDao:
         dbcursor = self._get_connection().cursor()
         dbcursor.execute("SELECT * FROM Portfolios ORDER BY portfolio_balance ASC")
         result = dbcursor.fetchall()
+        dbcursor.close()
 
         self.portfolios = []
         for row in result:
@@ -126,12 +136,15 @@ class PortfoliosDao:
         return dbcursor.rowcount > 0
 
     def update_balance(self, portfolio_id, new_balance):
-        dbcursor = self._get_connection().cursor()
+        connection = self._get_connection()
+        dbcursor = connection.cursor()
         dbcursor.execute(
             "UPDATE Portfolios SET portfolio_balance = %s WHERE portfolio_id = %s",
             (new_balance, portfolio_id)
         )
-        self._get_connection().commit()
+        connection.commit()
+        dbcursor.close()
+        self._reset_connection()
         return dbcursor.rowcount > 0
 
     def increment_balance(self, portfolio_id, amount):

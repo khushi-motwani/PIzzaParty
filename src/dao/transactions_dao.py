@@ -13,6 +13,9 @@ class TransactionsDao:
             self.connection = self.connection_factory()
         return self.connection
 
+    def _reset_connection(self):
+        self.connection = None
+
     def count(self):
         dbcursor = self._get_connection().cursor()
         dbcursor.execute("SELECT count(*) as Total FROM Transactions")
@@ -26,17 +29,18 @@ class TransactionsDao:
         dbcursor = self._get_connection().cursor()
         dbcursor.execute("SELECT * FROM Transactions")
         result = dbcursor.fetchall()
+        dbcursor.close()
 
         for row in result:
             transaction = TransactionsDTO(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8])
             self.transactions.append(transaction)
-        dbcursor.close()
         return self.transactions
 
 
     def create(self, portfolio_id, asset_id, transaction_type, transaction_quantity,
                transaction_price, transaction_date, transaction_total, balance_after_transaction):
-        dbcursor = self._get_connection().cursor()
+        connection = self._get_connection()
+        dbcursor = connection.cursor()
         dbcursor.execute(
             """INSERT INTO Transactions
                (portfolio_id, asset_id, transaction_type, transaction_quantity,
@@ -45,7 +49,9 @@ class TransactionsDao:
             (portfolio_id, asset_id, transaction_type, transaction_quantity,
              transaction_price, transaction_date, transaction_total, balance_after_transaction)
         )
-        self._get_connection().commit()
+        connection.commit()
+        dbcursor.close()
+        self._reset_connection()
         return dbcursor.lastrowid
 
     def row_to_dto(self, row):
