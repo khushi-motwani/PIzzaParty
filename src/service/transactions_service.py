@@ -208,17 +208,22 @@ class TransactionsService:
         
     def _create_withdraw_transaction(self, portfolio_id, amount):
         logger.info(f"Creating WITHDRAW transaction: portfolio={portfolio_id}")
-        
+
         # amount = Decimal(str(amount))
         # Check sufficient funds
         if not isinstance(amount, (int, float, Decimal)) or amount <= 0:
             logger.warning(f"Invalid amount attempted for WITHDRAW: {amount}")
             raise InvalidPriceException(amount)
-                        
+
         portfolio = self._get_portfolio(portfolio_id)
         new_balance = Decimal(str(portfolio.portfolio_balance)) - Decimal(str(amount))
+
+        if new_balance < 0:
+            logger.warning(f"Insufficient funds for WITHDRAW: required=${amount}, available=${portfolio.portfolio_balance}")
+            raise InsufficientFundsException(float(amount), float(portfolio.portfolio_balance))
+
         logger.debug(f"WITHDRAW validated: new_balance will be ${new_balance}")
-        
+
         return new_balance
     
     def get_transaction_by_id(self, transaction_id):

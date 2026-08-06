@@ -4,7 +4,8 @@ from exception.validation_exceptions import (
     ValidationException,
     PortfolioNotFoundException,
     AssetNotFoundException,
-    InsufficientAssetQuantityException
+    InsufficientAssetQuantityException,
+    InsufficientFundsException
 )
 from flask import Blueprint, jsonify, request
 from flask_cors import cross_origin
@@ -165,11 +166,11 @@ def create_buy_transaction():
 
     except PortfolioNotFoundException as e:
         logger.critical(f"Portfolio not found error: {str(e)}")
-        return jsonify({"error": str(e)}), 404
+        return jsonify({"error": "Portfolio not found"}), 404
 
     except AssetNotFoundException as e:
         logger.critical(f"Asset not found error: {str(e)}")
-        return jsonify({"error": str(e)}), 404
+        return jsonify({"error": "Asset not found"}), 404
 
 
     except ValidationException as e:
@@ -223,6 +224,86 @@ def create_sell_transaction():
 
     except Exception as e:
         logger.critical(f"Internal server error during SELL transaction creation: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+@transactions_bp.route('/create_deposit', methods=['POST'])
+@cross_origin()
+def create_deposit_transaction():
+    try:
+        data = request.get_json()
+
+        required_fields = ['portfolio_id', 'amount']
+        if not all(field in data for field in required_fields):
+            logger.warning(f"Create DEPOSIT transaction request missing required fields: {required_fields}")
+            return jsonify({
+                "error": "Missing required fields",
+                "required": required_fields
+            }), 400
+
+        portfolio_id = data['portfolio_id']
+        amount = data['amount']
+
+        transaction_id = transactions_service.create(
+            portfolio_id, None, 'DEPOSIT', None, None, None, amount, None
+        )
+
+        return jsonify({
+            "message": "DEPOSIT transaction created successfully",
+            "transaction_id": transaction_id
+        }), 201
+
+    except PortfolioNotFoundException as e:
+        logger.critical(f"Portfolio not found error: {str(e)}")
+        return jsonify({"error": str(e)}), 404
+
+    except ValidationException as e:
+        logger.critical(f"Validation error: {str(e)}")
+        return jsonify({"error": str(e)}), 400
+
+    except Exception as e:
+        logger.critical(f"Internal server error during DEPOSIT transaction creation: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
+@transactions_bp.route('/create_withdrawal', methods=['POST'])
+@cross_origin()
+def create_withdrawal_transaction():
+    try:
+        data = request.get_json()
+
+        required_fields = ['portfolio_id', 'amount']
+        if not all(field in data for field in required_fields):
+            logger.warning(f"Create WITHDRAWAL transaction request missing required fields: {required_fields}")
+            return jsonify({
+                "error": "Missing required fields",
+                "required": required_fields
+            }), 400
+
+        portfolio_id = data['portfolio_id']
+        amount = data['amount']
+
+        transaction_id = transactions_service.create(
+            portfolio_id, None, 'WITHDRAW', None, None, None, amount, None
+        )
+
+        return jsonify({
+            "message": "WITHDRAWAL transaction created successfully",
+            "transaction_id": transaction_id
+        }), 201
+
+    except PortfolioNotFoundException as e:
+        logger.critical(f"Portfolio not found error: {str(e)}")
+        return jsonify({"error": str(e)}), 404
+
+    except InsufficientFundsException as e:
+        logger.warning(f"Insufficient funds error: {str(e)}")
+        return jsonify({"error": str(e)}), 400
+
+    except ValidationException as e:
+        logger.critical(f"Validation error: {str(e)}")
+        return jsonify({"error": str(e)}), 400
+
+    except Exception as e:
+        logger.critical(f"Internal server error during WITHDRAWAL transaction creation: {str(e)}", exc_info=True)
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
 @transactions_bp.route('/<int:transaction_id>', methods=['PUT'])
