@@ -398,11 +398,11 @@ class TestTransactionsService:
         service.portfolios_dao.get_by_id = MagicMock(return_value=mock_portfolio)
         service.transactions_dao.create = MagicMock(return_value=1)
         service.portfolios_dao.update_balance = MagicMock(return_value=True)
-        # DEPOSIT requires asset_id to be None and transaction_quantity/price to be None
-        # The create method will convert None to int, which causes ValidationException
-        # This test verifies that ValidationException is raised as expected
-        with pytest.raises(ValidationException):
-            service.create(1, None, "DEPOSIT", None, None, "2024-01-15", 500, None)
+        # DEPOSIT with amount 500 should succeed
+        transaction_id = service.create(1, None, "DEPOSIT", None, None, "2024-01-15", 500, None)
+        assert transaction_id == 1
+        # Verify that balance was updated correctly: 1000 + 500 = 1500
+        service.portfolios_dao.update_balance.assert_called_once_with(1, Decimal("1500.00"))
 
     # Tests for WITHDRAW creation in create method
     def test_create_withdraw_transaction_via_create(self, service, mock_portfolio):
@@ -410,11 +410,11 @@ class TestTransactionsService:
         service.portfolios_dao.get_by_id = MagicMock(return_value=mock_portfolio)
         service.transactions_dao.create = MagicMock(return_value=1)
         service.portfolios_dao.update_balance = MagicMock(return_value=True)
-        # WITHDRAW requires asset_id to be None and transaction_quantity/price to be None
-        # The create method will convert None to int, which causes ValidationException
-        # This test verifies that ValidationException is raised as expected
-        with pytest.raises(ValidationException):
-            service.create(1, None, "WITHDRAW", None, None, "2024-01-15", 200, None)
+        # WITHDRAW with amount 200 should succeed
+        transaction_id = service.create(1, None, "WITHDRAW", None, None, "2024-01-15", 200, None)
+        assert transaction_id == 1
+        # Verify that balance was updated correctly: 1000 - 200 = 800
+        service.portfolios_dao.update_balance.assert_called_once_with(1, Decimal("800.00"))
 
     # Tests for date range validation
     def test_get_transactions_by_date_range_valid(self, service):
